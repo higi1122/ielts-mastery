@@ -1,0 +1,1425 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IELTS Mastery Hub</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; font-family: 'DM Sans', sans-serif; }
+.font-display { font-family: 'Playfair Display', serif; }
+.fade-in { animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse-dot { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+.pulse-dot { animation: pulse-dot 1.5s infinite; }
+.card-hover { transition: all 0.25s ease; }
+.card-hover:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.12); }
+.tag-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.timer-ring { transition: stroke-dashoffset 1s linear; }
+textarea:focus, input:focus { outline: none; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+.locked-overlay { backdrop-filter: blur(4px); }
+</style>
+<script>
+// ========== SDK 替身 (防止系統崩潰) ==========
+window.dataSdk = {
+  init: async () => ({ isOk: true }),
+  create: async (d) => { d.__backendId = Date.now().toString(); allData.push(d); return { isOk: true }; },
+  update: async () => ({ isOk: true }),
+  delete: async () => ({ isOk: true })
+};
+window.elementSdk = { init: () => {}, setConfig: () => {} };
+
+// ========== UI 顏色設定 ==========
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        ink: '#1e1b2e',
+        cream: '#faf8f5',
+        accent: '#6366f1',
+        accent2: '#f59e0b',
+        surface: '#ffffff',
+        muted: '#64748b'
+      }
+    }
+  }
+}
+</script>
+ </head>
+ <body class="h-full bg-cream text-ink">
+  <div id="app" class="h-full w-full overflow-auto">
+   <div id="screen-login" class="h-full w-full flex items-center justify-center p-4">
+    <div class="w-full max-w-sm fade-in">
+     <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent/10 mb-4">
+       <i data-lucide="graduation-cap" class="w-8 h-8 text-accent"></i>
+      </div>
+      <h1 id="main-title" class="font-display text-3xl font-bold text-ink mb-2">IELTS Mastery Hub</h1>
+      <p class="text-muted text-sm">Band 6 → 8 · 每日碎片時間練習</p>
+     </div>
+     <div class="bg-surface rounded-2xl p-6 shadow-lg shadow-ink/5">
+      <label for="login-name" class="block text-sm font-medium mb-2">你嘅名稱</label> <input id="login-name" type="text" placeholder="輸入用戶名稱" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-cream/50 text-ink placeholder:text-gray-400 mb-4"> <button id="btn-login" class="w-full py-3 rounded-xl bg-accent text-white font-semibold hover:bg-indigo-600 transition"> 開始學習 → </button>
+     </div>
+     <div id="last-login-info" class="text-center mt-4 text-xs text-muted hidden"></div>
+    </div>
+   </div><div id="screen-dashboard" class="h-full w-full hidden">
+    <div class="max-w-lg mx-auto p-4 pb-24">
+     <header class="flex items-center justify-between mb-6 pt-2 fade-in">
+      <div>
+       <p class="text-sm text-muted">Welcome back,</p>
+       <h2 id="dash-username" class="font-display text-2xl font-bold"></h2>
+      </div><button id="btn-review-nav" class="p-2.5 rounded-xl bg-accent2/10 text-accent2 hover:bg-accent2/20 transition" title="溫習"> <i data-lucide="bookmark" class="w-5 h-5"></i> </button>
+      </header>
+     <div id="dash-last-session" class="bg-surface rounded-xl p-4 mb-6 flex items-center gap-3 shadow-sm fade-in">
+      <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+       <i data-lucide="clock" class="w-5 h-5 text-accent"></i>
+      </div>
+      <div>
+       <p class="text-xs text-muted">上次練習時間</p>
+       <p id="dash-last-time" class="text-sm font-medium">首次使用</p>
+      </div>
+     </div>
+     <div id="dash-stats" class="grid grid-cols-3 gap-3 mb-6 fade-in">
+      <div class="bg-surface rounded-xl p-3 text-center shadow-sm">
+       <p id="stat-total" class="text-2xl font-bold text-accent">0</p>
+       <p class="text-xs text-muted mt-1">已完成</p>
+      </div>
+      <div class="bg-surface rounded-xl p-3 text-center shadow-sm">
+       <p id="stat-starred" class="text-2xl font-bold text-accent2">0</p>
+       <p class="text-xs text-muted mt-1">已收藏</p>
+      </div>
+      <div class="bg-surface rounded-xl p-3 text-center shadow-sm">
+       <p id="stat-streak" class="text-2xl font-bold text-emerald-500">0</p>
+       <p class="text-xs text-muted mt-1">日連續</p>
+      </div>
+     </div>
+     <h3 class="font-semibold text-sm text-muted uppercase tracking-wider mb-3 fade-in">選擇模組</h3>
+     <div class="space-y-3 fade-in">
+      <button onclick="showModule('writing')" class="w-full card-hover bg-surface rounded-2xl p-5 shadow-sm flex items-center gap-4 text-left">
+       <div class="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+        <i data-lucide="pen-tool" class="w-6 h-6 text-accent"></i>
+       </div>
+       <div class="flex-1 min-w-0">
+        <h4 class="font-semibold text-lg">📝 Writing</h4>
+        <p class="text-xs text-muted mt-0.5">結構邏輯 · 高階詞彙 · Task 2 骨架</p>
+       </div><i data-lucide="chevron-right" class="w-5 h-5 text-gray-300"></i> </button> <button onclick="showModule('speaking')" class="w-full card-hover bg-surface rounded-2xl p-5 shadow-sm flex items-center gap-4 text-left">
+       <div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+        <i data-lucide="mic" class="w-6 h-6 text-accent2"></i>
+       </div>
+       <div class="flex-1 min-w-0">
+        <h4 class="font-semibold text-lg">🗣️ Speaking</h4>
+        <p class="text-xs text-muted mt-0.5">流暢度 · 思路擴展 · PEEL 框架</p>
+       </div><i data-lucide="chevron-right" class="w-5 h-5 text-gray-300"></i> </button> <button onclick="showModule('manage')" class="w-full card-hover bg-surface rounded-2xl p-5 shadow-sm flex items-center gap-4 text-left">
+       <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+        <i data-lucide="settings" class="w-6 h-6 text-purple-600"></i>
+       </div>
+       <div class="flex-1 min-w-0">
+        <h4 class="font-semibold text-lg">⚙️ 題目管理</h4>
+        <p class="text-xs text-muted mt-0.5">新增 · 編輯 · 刪除題目</p>
+       </div><i data-lucide="chevron-right" class="w-5 h-5 text-gray-300"></i> </button>
+     </div>
+    </div>
+   </div><div id="screen-writing" class="h-full w-full hidden">
+    <div class="max-w-lg mx-auto p-4 pb-24">
+     <header class="flex items-center gap-3 mb-6 pt-2 fade-in">
+      <button onclick="goBack('dashboard')" class="p-2 rounded-xl hover:bg-gray-100 transition"> <i data-lucide="arrow-left" class="w-5 h-5"></i> </button>
+      <h2 class="font-display text-xl font-bold">📝 Writing</h2>
+     </header>
+     <div class="space-y-3 fade-in">
+      <button onclick="openWritingComponent('paraphrase')" class="w-full card-hover bg-surface rounded-xl p-4 shadow-sm flex items-center gap-3 text-left">
+       <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0"><i data-lucide="repeat" class="w-5 h-5 text-violet-600"></i>
+       </div>
+       <div class="flex-1">
+        <h4 class="font-semibold">Paraphrasing Engine</h4>
+        <p class="text-xs text-muted">改寫 6.0→7.5 句子</p>
+       </div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i> </button> <button onclick="openWritingComponent('grammar')" class="w-full card-hover bg-surface rounded-xl p-4 shadow-sm flex items-center gap-3 text-left">
+       <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0"><i data-lucide="check-square" class="w-5 h-5 text-blue-600"></i>
+       </div>
+       <div class="flex-1">
+        <h4 class="font-semibold">Grammar Focus</h4>
+        <p class="text-xs text-muted">重點句式學習</p>
+       </div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i> </button> <button onclick="openWritingComponent('vocab')" class="w-full card-hover bg-surface rounded-xl p-4 shadow-sm flex items-center gap-3 text-left">
+       <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0"><i data-lucide="book-open" class="w-5 h-5 text-emerald-600"></i>
+       </div>
+       <div class="flex-1">
+        <h4 class="font-semibold">Vocab Book</h4>
+        <p class="text-xs text-muted">高階寫作詞彙</p>
+       </div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i> </button> <button onclick="openWritingComponent('skeleton')" class="w-full card-hover bg-surface rounded-xl p-4 shadow-sm flex items-center gap-3 text-left">
+       <div class="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center flex-shrink-0"><i data-lucide="layout" class="w-5 h-5 text-rose-600"></i>
+       </div>
+       <div class="flex-1">
+        <h4 class="font-semibold">Skeleton Builder</h4>
+        <p class="text-xs text-muted">Task 2 骨架訓練</p>
+       </div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i> </button>
+     </div>
+    </div>
+   </div><div id="screen-speaking" class="h-full w-full hidden">
+    <div class="max-w-lg mx-auto p-4 pb-24">
+     <header class="flex items-center gap-3 mb-6 pt-2 fade-in">
+      <button onclick="goBack('dashboard')" class="p-2 rounded-xl hover:bg-gray-100 transition"> <i data-lucide="arrow-left" class="w-5 h-5"></i> </button>
+      <h2 class="font-display text-xl font-bold">🗣️ Speaking</h2>
+     </header>
+     <div class="space-y-3 fade-in">
+      <button onclick="openSpeakingComponent('part1')" class="w-full card-hover bg-surface rounded-xl p-4 shadow-sm flex items-center gap-3 text-left">
+       <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0"><i data-lucide="message-circle" class="w-5 h-5 text-amber-600"></i>
+       </div>
+       <div class="flex-1">
+        <h4 class="font-semibold">Part 1 Practice</h4>
+        <p class="text-xs text-muted">隨機日常問題練習</p>
+       </div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i> </button> <button onclick="openSpeakingComponent('part2')" class="w-full card-hover bg-surface rounded-xl p-4 shadow-sm flex items-center gap-3 text-left">
+       <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0"><i data-lucide="timer" class="w-5 h-5 text-orange-600"></i>
+       </div>
+       <div class="flex-1">
+        <h4 class="font-semibold">1-Min Brainstorm</h4>
+        <p class="text-xs text-muted">Part 2 Cue Card 限時練習</p>
+       </div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i> </button> <button onclick="openSpeakingComponent('part3')" class="w-full card-hover bg-surface rounded-xl p-4 shadow-sm flex items-center gap-3 text-left">
+       <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0"><i data-lucide="git-branch" class="w-5 h-5 text-red-600"></i>
+       </div>
+       <div class="flex-1">
+        <h4 class="font-semibold">PEEL Extender</h4>
+        <p class="text-xs text-muted">Part 3 邏輯延伸框架</p>
+       </div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i> </button>
+     </div>
+    </div>
+   </div><div id="screen-paraphrase" class="h-full w-full hidden">
+    <div class="max-w-lg mx-auto p-4 pb-24">
+     <header class="flex items-center gap-3 mb-5 pt-2 fade-in">
+      <button onclick="goBack('writing')" class="p-2 rounded-xl hover:bg-gray-100 transition"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+      <h2 class="font-display text-lg font-bold">Paraphrasing Engine</h2>
+     </header>
+     <div id="paraphrase-content" class="fade-in"></div>
+    </div>
+   </div><div id="screen-grammar" class="h-full w-full hidden">
+    <div class="max-w-lg mx-auto p-4 pb-24">
+     <header class="flex items-center gap-3 mb-5 pt-2 fade-in">
+      <button onclick="goBack('writing')" class="p-2 rounded-xl hover:bg-gray-100 transition"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+      <h2 class="font-display text-lg font-bold">Grammar Focus</h2>
+     </header>
+     <div id="grammar-content" class="fade-in"></div>
+    </div>
+   </div><div id="screen-vocab" class="h-full w-full hidden">
+    <div class="max-w-lg mx-auto p-4 pb-24">
+     <header class="flex items-center gap-3 mb-5 pt-2 fade-in">
+      <button onclick="goBack('writing')" class="p-2 rounded-xl hover:bg-gray-100 transition"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+      <h2 class="font-display text-lg font-bold">Vocab Book</h2><button onclick="toggleVocabAdd()" class="ml-auto p-2 rounded-xl bg-accent/10 text-accent hover:bg-accent/20 transition"><i data-lucide="plus" class="w-5 h-5"></i></button>
+     </header>
+     <div id="vocab-add-form" class="hidden bg-surface rounded-xl p-4 mb-4 shadow-sm fade-in">
+      <input id="vocab-word-input" type="text" placeholder="Word / Phrase" class="w-full px-3 py-2 rounded-lg border border-gray-200 mb-2 text-sm"> <input id="vocab-meaning-input" type="text" placeholder="意思 / Meaning" class="w-full px-3 py-2 rounded-lg border border-gray-200 mb-2 text-sm"> <input id="vocab-example-input" type="text" placeholder="例句 (optional)" class="w-full px-3 py-2 rounded-lg border border-gray-200 mb-3 text-sm"> <button onclick="saveCustomVocab()" class="w-full py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-indigo-600 transition">儲存</button>
+     </div>
+     <div id="vocab-content" class="fade-in"></div>
+    </div>
+   </div><div id="screen-skeleton" class="h-full w-full hidden">
+    <div class="max-w-lg mx-auto p-4 pb-24">
+     <header class="flex items-center gap-3 mb-5 pt-2 fade-in">
+      <button onclick="goBack('writing')" class="p-2 rounded-xl hover:bg-gray-100 transition"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+      <h2 class="font-display text-lg font-bold">Skeleton Builder</h2>
+     </header>
+     <div id="skeleton-content" class="fade-in"></div>
+    </div>
+   </div><div id="screen-part1" class="h-full w-full hidden">
+    <div class="max-w-lg mx-auto p-4 pb-24">
+     <header class="flex items-center gap-3 mb-5 pt-2 fade-in">
+      <button onclick="goBack('speaking')" class="p-2 rounded-xl hover:bg-gray-100 transition"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+      <h2 class="font-display text-lg font-bold">Part 1 Practice</h2>
+     </header>
+     <div id="part1-content" class="fade-in"></div>
+    </div>
+   </div><div id="screen-part2" class="h-full w-full hidden">
+    <div class="max-w-lg mx-auto p-4 pb-24">
+     <header class="flex items-center gap-3 mb-5 pt-2 fade-in">
+      <button onclick="goBack('speaking')" class="p-2 rounded-xl hover:bg-gray-100 transition"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+      <h2 class="font-display text-lg font-bold">1-Min Brainstorm</h2>
+     </header>
+     <div id="part2-content" class="fade-in"></div>
+    </div>
+   </div><div id="screen-part3" class="h-full w-full hidden">
+    <div class="max-w-lg mx-auto p-4 pb-24">
+     <header class="flex items-center gap-3 mb-5 pt-2 fade-in">
+      <button onclick="goBack('speaking')" class="p-2 rounded-xl hover:bg-gray-100 transition"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+      <h2 class="font-display text-lg font-bold">PEEL Extender</h2>
+     </header>
+     <div id="part3-content" class="fade-in"></div>
+    </div>
+   </div><div id="screen-review" class="h-full w-full hidden">
+    <div class="max-w-lg mx-auto p-4 pb-24">
+     <header class="flex items-center gap-3 mb-5 pt-2 fade-in">
+      <button onclick="goBack('dashboard')" class="p-2 rounded-xl hover:bg-gray-100 transition"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+      <h2 class="font-display text-xl font-bold">📚 溫習中心</h2>
+     </header>
+     <div class="flex gap-2 mb-4 flex-wrap fade-in">
+      <button onclick="filterReview('all')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-accent text-white" data-filter="all">全部</button> <button onclick="filterReview('starred')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="starred">⭐ 已收藏</button> <button onclick="filterReview('paraphrase')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="paraphrase">改寫</button> <button onclick="filterReview('grammar')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="grammar">Grammar</button> <button onclick="filterReview('vocab')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="vocab">Vocab</button> <button onclick="filterReview('skeleton')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="skeleton">Skeleton</button> <button onclick="filterReview('speaking')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="speaking">Speaking</button>
+     </div>
+     <div id="review-content" class="space-y-3 fade-in"></div>
+     <div id="review-empty" class="hidden text-center py-12">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gray-100 mb-4">
+       <i data-lucide="inbox" class="w-8 h-8 text-gray-300"></i>
+      </div>
+      <p class="text-muted">暫時冇收藏嘅內容</p>
+      <p class="text-xs text-gray-400 mt-1">練習時按 ⭐ 收藏想溫習嘅內容</p>
+     </div>
+    </div>
+   </div><div id="screen-manage" class="h-full w-full hidden">
+    <div class="max-w-lg mx-auto p-4 pb-24">
+     <header class="flex items-center gap-3 mb-6 pt-2 fade-in">
+      <button onclick="goBack('dashboard')" class="p-2 rounded-xl hover:bg-gray-100 transition"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+      <h2 class="font-display text-xl font-bold">⚙️ 題目管理</h2>
+     </header>
+     <div class="space-y-3 fade-in">
+      <button onclick="showManagePanel('paraphrase')" class="w-full card-hover bg-surface rounded-xl p-4 shadow-sm flex items-center gap-3 text-left">
+       <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0"><i data-lucide="repeat" class="w-5 h-5 text-violet-600"></i>
+       </div>
+       <div class="flex-1">
+        <h4 class="font-semibold">Paraphrasing</h4>
+        <p class="text-xs text-muted"><span id="count-para">0</span> 題</p>
+       </div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i> </button> <button onclick="showManagePanel('grammar')" class="w-full card-hover bg-surface rounded-xl p-4 shadow-sm flex items-center gap-3 text-left">
+       <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0"><i data-lucide="check-square" class="w-5 h-5 text-blue-600"></i>
+       </div>
+       <div class="flex-1">
+        <h4 class="font-semibold">Grammar Focus</h4>
+        <p class="text-xs text-muted"><span id="count-gram">0</span> 課</p>
+       </div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i> </button> <button onclick="showManagePanel('part1')" class="w-full card-hover bg-surface rounded-xl p-4 shadow-sm flex items-center gap-3 text-left">
+       <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0"><i data-lucide="message-circle" class="w-5 h-5 text-amber-600"></i>
+       </div>
+       <div class="flex-1">
+        <h4 class="font-semibold">Speaking Part 1</h4>
+        <p class="text-xs text-muted"><span id="count-part1">0</span> 題</p>
+       </div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i> </button> <button onclick="showManagePanel('part3')" class="w-full card-hover bg-surface rounded-xl p-4 shadow-sm flex items-center gap-3 text-left">
+       <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0"><i data-lucide="git-branch" class="w-5 h-5 text-red-600"></i>
+       </div>
+       <div class="flex-1">
+        <h4 class="font-semibold">Speaking Part 3</h4>
+        <p class="text-xs text-muted"><span id="count-part3">0</span> 題</p>
+       </div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i> </button>
+     </div>
+    </div>
+   </div><div id="screen-manage-detail" class="h-full w-full hidden">
+    <div class="max-w-lg mx-auto p-4 pb-24">
+     <header class="flex items-center gap-3 mb-6 pt-2 fade-in">
+      <button onclick="goBack('manage')" class="p-2 rounded-xl hover:bg-gray-100 transition"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+      <h2 id="manage-title" class="font-display text-xl font-bold"></h2>
+     </header>
+     <div id="manage-content" class="fade-in"></div>
+    </div>
+   </div><div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-ink text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium z-50 transition-all duration-300 opacity-0 pointer-events-none" style="transform: translate(-50%, 20px);">
+    <span id="toast-msg"></span>
+   </div>
+  </div>
+  <script>
+// ========== STATE ==========
+let currentUser = '';
+let allData = [];
+let currentScreen = 'login';
+let currentReviewFilter = 'all';
+let part2Timer = null;
+let part2Seconds = 60;
+let part2Phase = 'prep'; // prep | speak
+let speakTimer = null;
+let speakSeconds = 120;
+let customQuestions = { paraphrase: [], grammar: [], part1: [], part3: [] }; // Store custom questions from Data SDK
+let managingComponent = ''; // What we're currently managing
+
+// ========== GOOGLE SHEETS API ==========
+const API_URL = 'https://script.google.com/macros/s/AKfycbyc2fgUN1JMV9wrlYvOAGnRv6sgBaAx1j1EN5KDUQJzok2CkItWcvQHCVQLpXJLF5gF/exec';
+
+async function loadQuestionsFromGoogleSheet() {
+  try {
+    const response = await fetch(API_URL);
+    const allQuestions = await response.json();
+    
+    if (allQuestions && allQuestions.length > 0) {
+        // 將拉返嚟嘅 data 分類塞入變數。如果冇，就繼續用預設資料。
+        const sheetParaphrase = allQuestions.filter(q => q.component === 'paraphrase');
+        if (sheetParaphrase.length > 0) PARAPHRASE_DATA = sheetParaphrase;
+        
+        const sheetGrammar = allQuestions.filter(q => q.component === 'grammar');
+        if (sheetGrammar.length > 0) GRAMMAR_DATA = sheetGrammar;
+        
+        const sheetVocab = allQuestions.filter(q => q.component === 'vocab');
+        if (sheetVocab.length > 0) VOCAB_DATA = sheetVocab;
+        
+        const sheetSkeleton = allQuestions.filter(q => q.component === 'skeleton');
+        if (sheetSkeleton.length > 0) SKELETON_DATA = sheetSkeleton;
+        
+        const sheetPart1 = allQuestions.filter(q => q.component === 'part1');
+        if (sheetPart1.length > 0) PART1_DATA = sheetPart1;
+        
+        const sheetPart2 = allQuestions.filter(q => q.component === 'part2');
+        if (sheetPart2.length > 0) PART2_DATA = sheetPart2;
+        
+        const sheetPart3 = allQuestions.filter(q => q.component === 'part3');
+        if (sheetPart3.length > 0) PART3_DATA = sheetPart3;
+
+        console.log("✅ 成功從 Google Sheet 載入題目！");
+        updateManageCounts();
+        
+        // 如果停留緊喺相關畫面，幫手重新繪製
+        if (currentScreen === 'paraphrase') renderParaphrase();
+        if (currentScreen === 'grammar') renderGrammar();
+    }
+  } catch (error) {
+    console.warn("載入雲端題庫失敗，將使用本機預設題庫", error);
+    // 唔使 show Toast 嚇親 user，靜靜地 fallback 就好
+  }
+}
+
+// ========== REFERENCE DATA (將 const 改成 let，作為防呆 Fallback) ==========
+let PARAPHRASE_DATA = [
+  { id:'p1', original:'Many people think that technology is good for society.', hint:'Try: passive voice + advanced vocab', sample:'It is widely acknowledged that technological advancements have yielded substantial benefits for society.' },
+  { id:'p2', original:'Students should study hard to get good grades.', hint:'Try: conditional + formal register', sample:'Were students to dedicate themselves diligently to their studies, the attainment of exemplary academic results would become considerably more feasible.' }
+];
+
+let GRAMMAR_DATA = [
+  { id:'g1', topic:'Gerund as Subject', rule:'用 Gerund (-ing form) 做主語令句子更正式。', example:'Implementing renewable energy policies is essential for sustainable development.', practice:'用 gerund 改寫: "We need to reduce carbon emissions."' },
+];
+
+let VOCAB_DATA = [
+  { id:'v1', word:'proliferation', meaning:'急速增長/擴散', example:'The proliferation of smartphones has transformed communication patterns.', category:'Academic' },
+];
+
+let SKELETON_DATA = [
+  { id:'s1', question:'Some people believe that universities should focus on providing academic skills, while others think they should prepare students for employment. Discuss both views and give your own opinion.' },
+];
+
+let PART1_DATA = [
+  { id:'sp1', q:'Do you work or are you a student?', topic:'Work/Study' },
+];
+
+let PART2_DATA = [
+  { id:'sp2a', card:'Describe a book you have recently read.\n\nYou should say:\n- what the book was about\n- why you decided to read it\n- how long it took you to read it\n\nand explain whether you would recommend it to others.' },
+];
+
+let PART3_DATA = [
+  { id:'sp3a', q:'Why do you think some people prefer to read books rather than watch movies?', topic:'Media & Entertainment' },
+];
+
+// ========== TOAST ==========
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translate(-50%, 0)';
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translate(-50%, 20px)'; }, 2200);
+}
+
+// ========== NAVIGATION ==========
+function showScreen(name) {
+  document.querySelectorAll('[id^="screen-"]').forEach(s => s.classList.add('hidden'));
+  const el = document.getElementById('screen-' + name);
+  if (el) { el.classList.remove('hidden'); }
+  currentScreen = name;
+  lucide.createIcons();
+}
+
+function goBack(target) {
+  showScreen(target);
+}
+
+function showModule(mod) {
+  showScreen(mod);
+}
+
+// ========== DATA SDK ==========
+const dataHandler = {
+  onDataChanged(data) {
+    allData = data;
+    
+    // Rebuild custom questions from saved data
+    customQuestions = { paraphrase: [], grammar: [], part1: [], part3: [] };
+    allData.forEach(d => {
+      if (d.type === 'custom_question' && d.user === currentUser && d.custom_data) {
+        try {
+          const parsed = JSON.parse(d.custom_data);
+          const comp = d.component; // paraphrase, grammar, part1, part3
+          if (customQuestions[comp]) customQuestions[comp].push(parsed);
+        } catch(e) {}
+      }
+    });
+    
+    updateDashStats();
+    if (currentScreen === 'review') renderReview();
+  }
+};
+
+function getUserData() {
+  return allData.filter(d => d.user === currentUser);
+}
+
+function getRecord(type, component, questionId) {
+  return allData.find(d => d.user === currentUser && d.type === type && d.component === component && d.question_id === questionId);
+}
+
+async function saveAnswer(component, questionId, answer, category, starred, tags, notes) {
+  const existing = getRecord('answer', component, questionId);
+  if (existing) {
+    const updated = { ...existing, user_answer: answer, starred: starred || existing.starred, tags: tags || existing.tags, notes: notes || existing.notes, timestamp: new Date().toISOString() };
+    const r = await window.dataSdk.update(updated);
+    if (r.isOk) showToast('已更新 ✓');
+    return r;
+  } else {
+    if (allData.length >= 999) { showToast('已達儲存上限 (999)'); return; }
+    const r = await window.dataSdk.create({ type: 'answer', user: currentUser, category, component, question_id: questionId, user_answer: answer, starred: starred || false, tags: tags || '', notes: notes || '', timestamp: new Date().toISOString(), score: 0 });
+    if (r.isOk) showToast('已儲存 ✓');
+    return r;
+  }
+}
+
+async function toggleStar(component, questionId, category) {
+  const existing = getRecord('answer', component, questionId);
+  if (existing) {
+    const r = await window.dataSdk.update({ ...existing, starred: !existing.starred });
+    if (r.isOk) showToast(existing.starred ? '已取消收藏' : '已收藏 ⭐');
+  } else {
+    if (allData.length >= 999) { showToast('已達儲存上限 (999)'); return; }
+    const r = await window.dataSdk.create({ type: 'answer', user: currentUser, category, component, question_id: questionId, user_answer: '', starred: true, tags: '', notes: '', timestamp: new Date().toISOString(), score: 0 });
+    if (r.isOk) showToast('已收藏 ⭐');
+  }
+}
+
+async function saveSession() {
+  const existing = allData.find(d => d.user === currentUser && d.type === 'session');
+  const now = new Date().toISOString();
+  if (existing) {
+    await window.dataSdk.update({ ...existing, timestamp: now });
+  } else {
+    if (allData.length >= 999) return;
+    await window.dataSdk.create({ type: 'session', user: currentUser, category: '', component: '', question_id: '', user_answer: '', starred: false, tags: '', notes: '', timestamp: now, score: 0 });
+  }
+}
+
+// ========== DASHBOARD ==========
+function updateDashStats() {
+  const ud = getUserData();
+  const answers = ud.filter(d => d.type === 'answer' && d.user_answer);
+  const starred = ud.filter(d => d.type === 'answer' && d.starred);
+  const session = ud.find(d => d.type === 'session');
+
+  const el = (id) => document.getElementById(id);
+  if (el('stat-total')) el('stat-total').textContent = answers.length;
+  if (el('stat-starred')) el('stat-starred').textContent = starred.length;
+
+  // Simple streak: count unique days
+  const days = new Set(answers.map(a => a.timestamp ? a.timestamp.split('T')[0] : ''));
+  if (el('stat-streak')) el('stat-streak').textContent = days.size;
+
+  if (session && el('dash-last-time')) {
+    const d = new Date(session.timestamp);
+    el('dash-last-time').textContent = d.toLocaleDateString('zh-HK') + ' ' + d.toLocaleTimeString('zh-HK', { hour:'2-digit', minute:'2-digit' });
+  }
+}
+
+// ========== LOGIN ==========
+document.getElementById('btn-login').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('login-name').value.trim();
+  if (!name) { showToast('請輸入名稱'); return; }
+  currentUser = name;
+  document.getElementById('dash-username').textContent = name;
+
+  // Check for last session
+  const session = allData.find(d => d.user === name && d.type === 'session');
+  if (session) {
+    const d = new Date(session.timestamp);
+    document.getElementById('last-login-info').textContent = '上次登入: ' + d.toLocaleDateString('zh-HK');
+    document.getElementById('last-login-info').classList.remove('hidden');
+  }
+
+  await saveSession();
+  showScreen('dashboard');
+  updateDashStats();
+});
+
+document.getElementById('login-name').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
+
+// ========== WRITING COMPONENTS ==========
+function openWritingComponent(comp) {
+  showScreen(comp);
+  if (comp === 'paraphrase') renderParaphrase();
+  if (comp === 'grammar') renderGrammar();
+  if (comp === 'vocab') renderVocab();
+  if (comp === 'skeleton') renderSkeleton();
+}
+
+// Paraphrase
+let currentParaphraseIdx = 0;
+let paraphraseViewMode = 'detail'; // detail or table
+function renderParaphrase() {
+  const container = document.getElementById('paraphrase-content');
+  
+  // Combine built-in + custom questions
+  const allParaphrases = [...PARAPHRASE_DATA, ...(customQuestions.paraphrase || [])];
+  
+  // View toggle
+  let toggleHTML = `
+    <div class="flex gap-2 mb-4 justify-end">
+      <button onclick="paraphraseViewMode='detail';renderParaphrase()" class="px-3 py-1.5 rounded-lg text-sm font-medium ${paraphraseViewMode==='detail'?'bg-accent text-white':'bg-gray-100 text-muted'}">📝 逐題</button>
+      <button onclick="paraphraseViewMode='table';renderParaphrase()" class="px-3 py-1.5 rounded-lg text-sm font-medium ${paraphraseViewMode==='table'?'bg-accent text-white':'bg-gray-100 text-muted'}">📊 全表</button>
+    </div>
+  `;
+  container.innerHTML = toggleHTML;
+  
+  if (paraphraseViewMode === 'detail') {
+    if(allParaphrases.length === 0) { container.innerHTML += "<p>暫時未有題目，請去題庫新增！</p>"; return; }
+    const item = allParaphrases[currentParaphraseIdx];
+    const saved = getRecord('answer', 'paraphrase', item.id);
+    const isStarred = saved && saved.starred;
+    
+    container.innerHTML += `
+      <div class="flex items-center justify-between mb-3">
+        <span class="tag-pill bg-violet-100 text-violet-700">${currentParaphraseIdx + 1} / ${allParaphrases.length}</span>
+        <button onclick="toggleStar('paraphrase','${item.id}','writing').then(()=>setTimeout(renderParaphrase,500))" class="p-2 rounded-lg hover:bg-gray-100 transition">
+          <i data-lucide="star" class="w-5 h-5 ${isStarred ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}"></i>
+        </button>
+      </div>
+      <div class="bg-surface rounded-xl p-4 mb-4 shadow-sm border-l-4 border-violet-400">
+        <p class="text-xs text-muted mb-1 font-medium uppercase tracking-wide">Band 6.0 原句</p>
+        <p class="text-base font-medium leading-relaxed">${item.original}</p>
+        <p class="text-xs text-violet-500 mt-2 italic">💡 ${item.hint}</p>
+      </div>
+      <div class="mb-3">
+        <label class="block text-sm font-medium mb-1">你嘅 Band 7.5+ 改寫</label>
+        <textarea id="para-answer" rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm leading-relaxed resize-none" placeholder="喺度輸入你嘅改寫...">${saved ? saved.user_answer : ''}</textarea>
+      </div>
+      <div class="flex gap-2 mb-4">
+        <button onclick="saveParaphrase('${item.id}')" class="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-medium hover:bg-indigo-600 transition">💾 儲存</button>
+        <button onclick="showParaphraseSample('${item.id}')" class="flex-1 py-2.5 rounded-xl bg-gray-100 text-muted text-sm font-medium hover:bg-gray-200 transition">👀 參考答案</button>
+      </div>
+      <div id="para-sample-${item.id}" class="hidden bg-emerald-50 rounded-xl p-4 mb-4 border-l-4 border-emerald-400">
+        <p class="text-xs text-emerald-700 font-medium mb-1">✨ 參考改寫</p>
+        <p class="text-sm text-emerald-900 leading-relaxed">${item.sample || '自訂題目冇提供參考'}</p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="prevParaphrase()" class="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-medium hover:bg-gray-50 transition ${currentParaphraseIdx === 0 ? 'opacity-30 pointer-events-none':''}">← 上一題</button>
+        <button onclick="nextParaphrase()" class="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-medium hover:bg-gray-50 transition ${currentParaphraseIdx === allParaphrases.length - 1 ? 'opacity-30 pointer-events-none':''}">下一題 →</button>
+      </div>
+    `;
+  } else {
+    // Table view
+    let html = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-gray-200"><th class="text-left p-2 font-semibold">原句</th><th class="text-left p-2 font-semibold">你嘅改寫</th><th class="text-center p-2 font-semibold">操作</th></tr></thead><tbody>';
+    allParaphrases.forEach((item, idx) => {
+      const saved = getRecord('answer', 'paraphrase', item.id);
+      const isStarred = saved && saved.starred;
+      const isCustom = item.id && item.id.startsWith('custom_');
+      html += `
+        <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onclick="currentParaphraseIdx=${idx};paraphraseViewMode='detail';renderParaphrase()">
+          <td class="p-2 text-xs leading-relaxed">${item.original.substring(0, 50)}...</td>
+          <td class="p-2 text-xs text-muted">${saved?.user_answer ? saved.user_answer.substring(0, 40) + '...' : '❌ 未完成'}</td>
+          <td class="p-2 text-center">
+            <button onclick="event.stopPropagation();toggleStar('paraphrase','${item.id}','writing').then(()=>setTimeout(renderParaphrase,500))" class="p-1 hover:bg-gray-200 rounded">
+              <i data-lucide="star" class="w-4 h-4 ${isStarred ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}"></i>
+            </button>
+            ${isCustom ? `<button onclick="event.stopPropagation();deleteCustomQuestion('paraphrase','${item.id}').then(()=>renderParaphrase())" class="p-1 hover:bg-red-100 rounded"><i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i></button>` : ''}
+          </td>
+        </tr>
+      `;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML += html;
+  }
+  lucide.createIcons();
+}
+
+async function saveParaphrase(id) {
+  const answer = document.getElementById('para-answer').value.trim();
+  if (!answer) { showToast('請先輸入答案'); return; }
+  await saveAnswer('paraphrase', id, answer, 'writing');
+}
+
+function showParaphraseSample(id) {
+  const el = document.getElementById('para-sample-' + id);
+  el.classList.toggle('hidden');
+}
+
+function nextParaphrase() { const all = [...PARAPHRASE_DATA, ...(customQuestions.paraphrase || [])]; if (currentParaphraseIdx < all.length - 1) { currentParaphraseIdx++; renderParaphrase(); } }
+function prevParaphrase() { if (currentParaphraseIdx > 0) { currentParaphraseIdx--; renderParaphrase(); } }
+
+// Grammar
+let currentGrammarIdx = 0;
+let grammarViewMode = 'detail'; // detail or table
+function renderGrammar() {
+  const container = document.getElementById('grammar-content');
+  const allGrammar = [...GRAMMAR_DATA, ...(customQuestions.grammar || [])];
+  
+  let toggleHTML = `
+    <div class="flex gap-2 mb-4 justify-end">
+      <button onclick="grammarViewMode='detail';renderGrammar()" class="px-3 py-1.5 rounded-lg text-sm font-medium ${grammarViewMode==='detail'?'bg-accent text-white':'bg-gray-100 text-muted'}">📝 逐課</button>
+      <button onclick="grammarViewMode='table';renderGrammar()" class="px-3 py-1.5 rounded-lg text-sm font-medium ${grammarViewMode==='table'?'bg-accent text-white':'bg-gray-100 text-muted'}">📊 全表</button>
+    </div>
+  `;
+  container.innerHTML = toggleHTML;
+  
+  if (grammarViewMode === 'detail') {
+    if(allGrammar.length === 0) { container.innerHTML += "<p>暫時未有題目，請去題庫新增！</p>"; return; }
+    const item = allGrammar[currentGrammarIdx];
+    const saved = getRecord('answer', 'grammar', item.id);
+    const isStarred = saved && saved.starred;
+    
+    container.innerHTML += `
+      <div class="flex items-center justify-between mb-3">
+        <span class="tag-pill bg-blue-100 text-blue-700">${currentGrammarIdx + 1} / ${allGrammar.length}</span>
+        <button onclick="toggleStar('grammar','${item.id}','writing').then(()=>setTimeout(renderGrammar,500))" class="p-2 rounded-lg hover:bg-gray-100 transition">
+          <i data-lucide="star" class="w-5 h-5 ${isStarred ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}"></i>
+        </button>
+      </div>
+      <div class="bg-surface rounded-xl p-4 mb-4 shadow-sm">
+        <h3 class="font-semibold text-lg mb-2 text-blue-700">${item.topic}</h3>
+        <p class="text-sm text-muted mb-3 leading-relaxed">${item.rule}</p>
+        <div class="bg-blue-50 rounded-lg p-3 mb-3">
+          <p class="text-xs text-blue-600 font-medium mb-1">📖 例句</p>
+          <p class="text-sm italic leading-relaxed">${item.example}</p>
+        </div>
+        <div class="bg-amber-50 rounded-lg p-3">
+          <p class="text-xs text-amber-700 font-medium mb-1">✏️ 練習</p>
+          <p class="text-sm leading-relaxed">${item.practice}</p>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="block text-sm font-medium mb-1">你嘅答案</label>
+        <textarea id="grammar-answer" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm leading-relaxed resize-none" placeholder="喺度輸入...">${saved ? saved.user_answer : ''}</textarea>
+      </div>
+      <button onclick="saveGrammarAnswer('${item.id}')" class="w-full py-2.5 rounded-xl bg-accent text-white text-sm font-medium hover:bg-indigo-600 transition mb-4">💾 儲存答案</button>
+      <div class="flex gap-2">
+        <button onclick="prevGrammar()" class="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-medium hover:bg-gray-50 transition ${currentGrammarIdx===0?'opacity-30 pointer-events-none':''}">← 上一課</button>
+        <button onclick="nextGrammar()" class="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-medium hover:bg-gray-50 transition ${currentGrammarIdx===allGrammar.length-1?'opacity-30 pointer-events-none':''}">下一課 →</button>
+      </div>
+    `;
+  } else {
+    let html = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-gray-200"><th class="text-left p-2 font-semibold">句式</th><th class="text-left p-2 font-semibold">你嘅答案</th><th class="text-center p-2 font-semibold">操作</th></tr></thead><tbody>';
+    allGrammar.forEach((item, idx) => {
+      const saved = getRecord('answer', 'grammar', item.id);
+      const isStarred = saved && saved.starred;
+      const isCustom = item.id && item.id.startsWith('custom_');
+      html += `
+        <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onclick="currentGrammarIdx=${idx};grammarViewMode='detail';renderGrammar()">
+          <td class="p-2 font-medium text-xs">${item.topic}</td>
+          <td class="p-2 text-xs text-muted">${saved?.user_answer ? saved.user_answer.substring(0, 40) + '...' : '❌ 未完成'}</td>
+          <td class="p-2 text-center">
+            <button onclick="event.stopPropagation();toggleStar('grammar','${item.id}','writing').then(()=>setTimeout(renderGrammar,500))" class="p-1 hover:bg-gray-200 rounded">
+              <i data-lucide="star" class="w-4 h-4 ${isStarred ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}"></i>
+            </button>
+            ${isCustom ? `<button onclick="event.stopPropagation();deleteCustomQuestion('grammar','${item.id}').then(()=>renderGrammar())" class="p-1 hover:bg-red-100 rounded"><i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i></button>` : ''}
+          </td>
+        </tr>
+      `;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML += html;
+  }
+  lucide.createIcons();
+}
+
+async function saveGrammarAnswer(id) {
+  const answer = document.getElementById('grammar-answer').value.trim();
+  if (!answer) { showToast('請先輸入答案'); return; }
+  await saveAnswer('grammar', id, answer, 'writing');
+}
+function nextGrammar() { const all = [...GRAMMAR_DATA, ...(customQuestions.grammar || [])]; if (currentGrammarIdx < all.length - 1) { currentGrammarIdx++; renderGrammar(); } }
+function prevGrammar() { if (currentGrammarIdx > 0) { currentGrammarIdx--; renderGrammar(); } }
+
+// Vocab
+let vocabViewMode = 'detail';
+function renderVocab() {
+  const container = document.getElementById('vocab-content');
+  const customVocabs = getUserData().filter(d => d.component === 'vocab_custom');
+  
+  let toggleHTML = `
+    <div class="flex gap-2 mb-4 justify-end">
+      <button onclick="vocabViewMode='detail';renderVocab()" class="px-3 py-1.5 rounded-lg text-sm font-medium ${vocabViewMode==='detail'?'bg-accent text-white':'bg-gray-100 text-muted'}">📋 詳細</button>
+      <button onclick="vocabViewMode='table';renderVocab()" class="px-3 py-1.5 rounded-lg text-sm font-medium ${vocabViewMode==='table'?'bg-accent text-white':'bg-gray-100 text-muted'}">📊 表格</button>
+    </div>
+  `;
+  container.innerHTML = toggleHTML;
+  
+  if (vocabViewMode === 'detail') {
+    let html = '<div class="space-y-3">';
+    VOCAB_DATA.forEach(item => {
+      const saved = getRecord('answer', 'vocab', item.id);
+      const isStarred = saved && saved.starred;
+      html += `
+        <div class="bg-surface rounded-xl p-4 shadow-sm">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <span class="tag-pill bg-emerald-100 text-emerald-700 mb-2">${item.category}</span>
+              <h4 class="font-semibold text-lg mt-1">${item.word}</h4>
+              <p class="text-sm text-muted">${item.meaning}</p>
+            </div>
+            <button onclick="toggleStar('vocab','${item.id}','writing').then(()=>setTimeout(renderVocab,500))" class="p-1.5 rounded-lg hover:bg-gray-100 transition flex-shrink-0">
+              <i data-lucide="star" class="w-5 h-5 ${isStarred ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}"></i>
+            </button>
+          </div>
+          <p class="text-xs text-muted mt-2 italic leading-relaxed">"${item.example}"</p>
+        </div>
+      `;
+    });
+    // Custom vocabs
+    customVocabs.forEach(cv => {
+      html += `
+        <div class="bg-surface rounded-xl p-4 shadow-sm border-l-4 border-accent">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <span class="tag-pill bg-indigo-100 text-indigo-700 mb-2">自訂</span>
+              <h4 class="font-semibold text-lg mt-1">${cv.question_id}</h4>
+              <p class="text-sm text-muted">${cv.user_answer}</p>
+            </div>
+            <div class="flex gap-1 flex-shrink-0">
+              <button onclick="toggleStar('vocab_custom','${cv.question_id}','writing').then(()=>setTimeout(renderVocab,500))" class="p-1.5 rounded-lg hover:bg-gray-100 transition">
+                <i data-lucide="star" class="w-5 h-5 ${cv.starred ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}"></i>
+              </button>
+              <button onclick="editCustomVocab('${cv.__backendId}')" class="p-1.5 rounded-lg hover:bg-gray-100 transition">
+                <i data-lucide="edit" class="w-5 h-5 text-gray-400"></i>
+              </button>
+              <button onclick="deleteCustomVocab('${cv.__backendId}')" class="p-1.5 rounded-lg hover:bg-red-50 transition">
+                <i data-lucide="trash-2" class="w-5 h-5 text-red-400"></i>
+              </button>
+            </div>
+          </div>
+          ${cv.notes ? `<p class="text-xs text-muted mt-2 italic">"${cv.notes}"</p>` : ''}
+        </div>
+      `;
+    });
+    html += '</div>';
+    container.innerHTML += html;
+  } else {
+    let allVocabs = VOCAB_DATA.map(v => ({ ...v, isCustom: false }));
+    customVocabs.forEach(cv => {
+      allVocabs.push({ id: cv.__backendId, word: cv.question_id, meaning: cv.user_answer, example: cv.notes || '', category: '自訂', isCustom: true, __backendId: cv.__backendId, starred: cv.starred });
+    });
+    
+    let html = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-gray-200"><th class="text-left p-2 font-semibold">詞彙</th><th class="text-left p-2 font-semibold">意思</th><th class="text-left p-2 font-semibold">分類</th><th class="text-center p-2 font-semibold">操作</th></tr></thead><tbody>';
+    allVocabs.forEach(v => {
+      const saved = getRecord('answer', v.isCustom ? 'vocab_custom' : 'vocab', v.id);
+      const isStarred = saved?.starred || v.starred || false;
+      html += `
+        <tr class="border-b border-gray-100 hover:bg-gray-50">
+          <td class="p-2 font-medium">${v.word}</td>
+          <td class="p-2 text-muted text-xs">${v.meaning}</td>
+          <td class="p-2"><span class="tag-pill bg-gray-100 text-gray-700">${v.category}</span></td>
+          <td class="p-2 text-center flex gap-1 justify-center">
+            <button onclick="toggleStar('${v.isCustom?'vocab_custom':'vocab'}','${v.id}','writing').then(()=>setTimeout(renderVocab,500))" class="p-1 hover:bg-gray-200 rounded">
+              <i data-lucide="star" class="w-4 h-4 ${isStarred ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}"></i>
+            </button>
+            ${v.isCustom ? `
+              <button onclick="editCustomVocab('${v.__backendId}')" class="p-1 hover:bg-gray-200 rounded"><i data-lucide="edit" class="w-4 h-4 text-gray-400"></i></button>
+              <button onclick="deleteCustomVocab('${v.__backendId}')" class="p-1 hover:bg-red-100 rounded"><i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i></button>
+            ` : ''}
+          </td>
+        </tr>
+      `;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML += html;
+  }
+  lucide.createIcons();
+}
+
+let editingVocabId = null;
+function editCustomVocab(id) {
+  const vocab = allData.find(d => d.__backendId === id);
+  if (!vocab) return;
+  editingVocabId = id;
+  document.getElementById('vocab-word-input').value = vocab.question_id;
+  document.getElementById('vocab-meaning-input').value = vocab.user_answer;
+  document.getElementById('vocab-example-input').value = vocab.notes || '';
+  document.getElementById('vocab-add-form').classList.remove('hidden');
+  document.querySelector('#vocab-add-form button').textContent = '更新';
+}
+
+async function deleteCustomVocab(id) {
+  const vocab = allData.find(d => d.__backendId === id);
+  if (!vocab) return;
+  const r = await window.dataSdk.delete(vocab);
+  if (r.isOk) { showToast('已刪除 ✓'); setTimeout(renderVocab, 500); }
+}
+
+function toggleVocabAdd() {
+  document.getElementById('vocab-add-form').classList.toggle('hidden');
+}
+
+async function saveCustomVocab() {
+  const word = document.getElementById('vocab-word-input').value.trim();
+  const meaning = document.getElementById('vocab-meaning-input').value.trim();
+  const example = document.getElementById('vocab-example-input').value.trim();
+  if (!word || !meaning) { showToast('請輸入詞彙同意思'); return; }
+  
+  if (editingVocabId) {
+    const vocab = allData.find(d => d.__backendId === editingVocabId);
+    if (vocab) {
+      const r = await window.dataSdk.update({ ...vocab, question_id: word, user_answer: meaning, notes: example });
+      if (r.isOk) {
+        showToast('已更新詞彙 ✓');
+        editingVocabId = null;
+        document.getElementById('vocab-word-input').value = '';
+        document.getElementById('vocab-meaning-input').value = '';
+        document.getElementById('vocab-example-input').value = '';
+        document.getElementById('vocab-add-form').classList.add('hidden');
+        document.querySelector('#vocab-add-form button').textContent = '儲存';
+        setTimeout(renderVocab, 500);
+      }
+    }
+  } else {
+    if (allData.length >= 999) { showToast('已達儲存上限 (999)'); return; }
+    const r = await window.dataSdk.create({ type: 'answer', user: currentUser, category: 'writing', component: 'vocab_custom', question_id: word, user_answer: meaning, starred: false, tags: 'custom', notes: example, timestamp: new Date().toISOString(), score: 0 });
+    if (r.isOk) {
+      showToast('已新增詞彙 ✓');
+      document.getElementById('vocab-word-input').value = '';
+      document.getElementById('vocab-meaning-input').value = '';
+      document.getElementById('vocab-example-input').value = '';
+      document.getElementById('vocab-add-form').classList.add('hidden');
+      setTimeout(renderVocab, 500);
+    }
+  }
+}
+
+// Skeleton Builder
+let currentSkeletonIdx = 0;
+let skeletonViewMode = 'detail';
+function renderSkeleton() {
+  const container = document.getElementById('skeleton-content');
+  let toggleHTML = `
+    <div class="flex gap-2 mb-4 justify-end">
+      <button onclick="skeletonViewMode='detail';renderSkeleton()" class="px-3 py-1.5 rounded-lg text-sm font-medium ${skeletonViewMode==='detail'?'bg-accent text-white':'bg-gray-100 text-muted'}">📝 逐題</button>
+      <button onclick="skeletonViewMode='table';renderSkeleton()" class="px-3 py-1.5 rounded-lg text-sm font-medium ${skeletonViewMode==='table'?'bg-accent text-white':'bg-gray-100 text-muted'}">📊 全表</button>
+    </div>
+  `;
+  container.innerHTML = toggleHTML;
+  
+  if (skeletonViewMode === 'detail') {
+    if(SKELETON_DATA.length === 0) return;
+    const item = SKELETON_DATA[currentSkeletonIdx];
+    const saved = getRecord('answer', 'skeleton', item.id);
+    const isStarred = saved && saved.starred;
+    let thesis = '', tp1 = '', tp2 = '';
+    if (saved && saved.user_answer) {
+      try { const parsed = JSON.parse(saved.user_answer); thesis = parsed.thesis || ''; tp1 = parsed.tp1 || ''; tp2 = parsed.tp2 || ''; } catch(e) {}
+    }
+
+    container.innerHTML += `
+      <div class="flex items-center justify-between mb-3">
+        <span class="tag-pill bg-rose-100 text-rose-700">${currentSkeletonIdx + 1} / ${SKELETON_DATA.length}</span>
+        <button onclick="toggleStar('skeleton','${item.id}','writing').then(()=>setTimeout(renderSkeleton,500))" class="p-2 rounded-lg hover:bg-gray-100 transition">
+          <i data-lucide="star" class="w-5 h-5 ${isStarred ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}"></i>
+        </button>
+      </div>
+      <div class="bg-surface rounded-xl p-4 mb-4 shadow-sm border-l-4 border-rose-400">
+        <p class="text-xs text-muted font-medium mb-1">📋 Task 2 題目</p>
+        <p class="text-sm leading-relaxed">${item.question}</p>
+      </div>
+      <div class="space-y-3 mb-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">🎯 Thesis Statement (主旨句)</label>
+          <textarea id="skel-thesis" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="你嘅立場/觀點...">${thesis}</textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">📌 Body 1 - Topic Sentence</label>
+          <textarea id="skel-tp1" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="第一段主題句...">${tp1}</textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">📌 Body 2 - Topic Sentence</label>
+          <textarea id="skel-tp2" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="第二段主題句...">${tp2}</textarea>
+        </div>
+      </div>
+      <button onclick="saveSkeleton('${item.id}')" class="w-full py-2.5 rounded-xl bg-accent text-white text-sm font-medium hover:bg-indigo-600 transition mb-4">💾 儲存骨架</button>
+      <div class="flex gap-2">
+        <button onclick="prevSkeleton()" class="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-medium hover:bg-gray-50 transition ${currentSkeletonIdx===0?'opacity-30 pointer-events-none':''}">← 上一題</button>
+        <button onclick="nextSkeleton()" class="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-medium hover:bg-gray-50 transition ${currentSkeletonIdx===SKELETON_DATA.length-1?'opacity-30 pointer-events-none':''}">下一題 →</button>
+      </div>
+    `;
+  } else {
+    let html = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-gray-200"><th class="text-left p-2 font-semibold">題目</th><th class="text-left p-2 font-semibold">Thesis</th><th class="text-center p-2 font-semibold">操作</th></tr></thead><tbody>';
+    SKELETON_DATA.forEach((item, idx) => {
+      const saved = getRecord('answer', 'skeleton', item.id);
+      const isStarred = saved && saved.starred;
+      let thesis = '';
+      if (saved && saved.user_answer) { try { thesis = JSON.parse(saved.user_answer).thesis || ''; } catch(e) {} }
+      html += `
+        <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onclick="currentSkeletonIdx=${idx};skeletonViewMode='detail';renderSkeleton()">
+          <td class="p-2 text-xs leading-relaxed">${item.question.substring(0, 40)}...</td>
+          <td class="p-2 text-xs text-muted">${thesis ? thesis.substring(0, 35) + '...' : '❌ 未完成'}</td>
+          <td class="p-2 text-center">
+            <button onclick="event.stopPropagation();toggleStar('skeleton','${item.id}','writing').then(()=>setTimeout(renderSkeleton,500))" class="p-1 hover:bg-gray-200 rounded">
+              <i data-lucide="star" class="w-4 h-4 ${isStarred ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML += html;
+  }
+  lucide.createIcons();
+}
+
+async function saveSkeleton(id) {
+  const thesis = document.getElementById('skel-thesis').value.trim();
+  const tp1 = document.getElementById('skel-tp1').value.trim();
+  const tp2 = document.getElementById('skel-tp2').value.trim();
+  if (!thesis) { showToast('請至少寫 Thesis Statement'); return; }
+  const answer = JSON.stringify({ thesis, tp1, tp2 });
+  await saveAnswer('skeleton', id, answer, 'writing');
+}
+function nextSkeleton() { if (currentSkeletonIdx < SKELETON_DATA.length - 1) { currentSkeletonIdx++; renderSkeleton(); } }
+function prevSkeleton() { if (currentSkeletonIdx > 0) { currentSkeletonIdx--; renderSkeleton(); } }
+
+// ========== SPEAKING COMPONENTS ==========
+function openSpeakingComponent(comp) {
+  showScreen(comp);
+  if (comp === 'part1') renderPart1();
+  if (comp === 'part2') renderPart2();
+  if (comp === 'part3') renderPart3();
+}
+
+// Part 1
+let currentPart1Idx = 0;
+function renderPart1() {
+  const allPart1 = [...PART1_DATA, ...(customQuestions.part1 || [])];
+  if(allPart1.length === 0) return;
+  const container = document.getElementById('part1-content');
+  const item = allPart1[currentPart1Idx];
+  const saved = getRecord('answer', 'part1', item.id);
+  const isStarred = saved && saved.starred;
+
+  container.innerHTML = `
+    <div class="flex items-center justify-between mb-3">
+      <span class="tag-pill bg-amber-100 text-amber-700">${item.topic || '自訂'}</span>
+      <button onclick="toggleStar('part1','${item.id}','speaking').then(()=>setTimeout(renderPart1,500))" class="p-2 rounded-lg hover:bg-gray-100 transition">
+        <i data-lucide="star" class="w-5 h-5 ${isStarred ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}"></i>
+      </button>
+    </div>
+    <div class="bg-surface rounded-xl p-5 mb-4 shadow-sm text-center">
+      <i data-lucide="message-circle" class="w-8 h-8 text-amber-500 mx-auto mb-3"></i>
+      <p class="text-lg font-medium leading-relaxed">"${item.q}"</p>
+    </div>
+    <div class="mb-3">
+      <label class="block text-sm font-medium mb-1">你嘅回答 (寫低練習)</label>
+      <textarea id="part1-answer" rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="用英文寫低你嘅答案...">${saved ? saved.user_answer : ''}</textarea>
+    </div>
+    <button onclick="savePart1('${item.id}')" class="w-full py-2.5 rounded-xl bg-accent text-white text-sm font-medium hover:bg-indigo-600 transition mb-4">💾 儲存</button>
+    <div class="flex gap-2">
+      <button onclick="randomPart1()" class="flex-1 py-2 rounded-xl bg-amber-100 text-amber-700 text-sm font-medium hover:bg-amber-200 transition">🎲 隨機下一題</button>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+async function savePart1(id) {
+  const answer = document.getElementById('part1-answer').value.trim();
+  if (!answer) { showToast('請先輸入答案'); return; }
+  await saveAnswer('part1', id, answer, 'speaking');
+}
+function randomPart1() {
+  const allPart1 = [...PART1_DATA, ...(customQuestions.part1 || [])];
+  let idx;
+  do { idx = Math.floor(Math.random() * allPart1.length); } while (idx === currentPart1Idx && allPart1.length > 1);
+  currentPart1Idx = idx;
+  renderPart1();
+}
+
+// Part 2
+let currentPart2Idx = 0;
+function renderPart2() {
+  clearInterval(part2Timer);
+  clearInterval(speakTimer);
+  part2Seconds = 60;
+  speakSeconds = 120;
+  part2Phase = 'prep';
+  const container = document.getElementById('part2-content');
+  if(PART2_DATA.length === 0) return;
+  const item = PART2_DATA[currentPart2Idx];
+
+  container.innerHTML = `
+    <div class="bg-surface rounded-xl p-4 mb-4 shadow-sm border-l-4 border-orange-400">
+      <p class="text-xs text-muted font-medium mb-2">🎤 Cue Card</p>
+      <p class="text-sm leading-relaxed whitespace-pre-line">${item.card}</p>
+    </div>
+    <div id="p2-timer-area">
+      <div class="text-center mb-4">
+        <div class="inline-flex items-center justify-center w-24 h-24 rounded-full border-4 border-orange-400 mb-2">
+          <span id="p2-timer-display" class="text-3xl font-bold text-orange-600">60</span>
+        </div>
+        <p id="p2-phase-label" class="text-sm font-medium text-orange-600">📝 準備時間</p>
+      </div>
+      <textarea id="p2-notes" rows="5" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none mb-3" placeholder="快速寫低你嘅 notes..."></textarea>
+      <button id="p2-start-btn" onclick="startPart2Timer()" class="w-full py-2.5 rounded-xl bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition">▶ 開始 1 分鐘準備</button>
+    </div>
+    <div id="p2-speak-area" class="hidden">
+      <div class="text-center mb-4">
+        <div class="inline-flex items-center justify-center w-24 h-24 rounded-full border-4 border-red-400 mb-2">
+          <span id="p2-speak-display" class="text-3xl font-bold text-red-600">120</span>
+        </div>
+        <p class="text-sm font-medium text-red-600">🎤 講嘢時間 (2分鐘)</p>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-3 mb-3">
+        <p class="text-xs text-muted font-medium mb-1">你嘅 Notes:</p>
+        <p id="p2-locked-notes" class="text-sm whitespace-pre-line"></p>
+      </div>
+      <div class="mb-3">
+        <label class="block text-sm font-medium mb-1">講完之後記低重點</label>
+        <textarea id="p2-reflection" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="你講咗啲咩..."></textarea>
+      </div>
+      <button onclick="savePart2('${item.id}')" class="w-full py-2.5 rounded-xl bg-accent text-white text-sm font-medium hover:bg-indigo-600 transition">💾 儲存</button>
+    </div>
+    <div class="flex gap-2 mt-3">
+      <button onclick="currentPart2Idx=(currentPart2Idx+1)%PART2_DATA.length;renderPart2()" class="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-medium hover:bg-gray-50 transition">🔄 下一張 Cue Card</button>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+function startPart2Timer() {
+  const btn = document.getElementById('p2-start-btn');
+  btn.disabled = true;
+  btn.classList.add('opacity-50');
+  part2Timer = setInterval(() => {
+    part2Seconds--;
+    document.getElementById('p2-timer-display').textContent = part2Seconds;
+    if (part2Seconds <= 0) {
+      clearInterval(part2Timer);
+      const notes = document.getElementById('p2-notes').value;
+      document.getElementById('p2-locked-notes').textContent = notes || '(冇 notes)';
+      document.getElementById('p2-timer-area').classList.add('hidden');
+      document.getElementById('p2-speak-area').classList.remove('hidden');
+      startSpeakTimer();
+    }
+  }, 1000);
+}
+function startSpeakTimer() {
+  speakTimer = setInterval(() => {
+    speakSeconds--;
+    document.getElementById('p2-speak-display').textContent = speakSeconds;
+    if (speakSeconds <= 0) { clearInterval(speakTimer); showToast('時間到！'); }
+  }, 1000);
+}
+async function savePart2(id) {
+  const notes = document.getElementById('p2-locked-notes').textContent;
+  const reflection = document.getElementById('p2-reflection').value.trim();
+  await saveAnswer('part2', id, reflection, 'speaking', false, '', notes);
+}
+
+// Part 3
+let currentPart3Idx = 0;
+function renderPart3() {
+  const allPart3 = [...PART3_DATA, ...(customQuestions.part3 || [])];
+  if(allPart3.length === 0) return;
+  const container = document.getElementById('part3-content');
+  const item = allPart3[currentPart3Idx];
+  const saved = getRecord('answer', 'part3', item.id);
+  const isStarred = saved && saved.starred;
+  let peel = { point:'', evidence:'', explanation:'', link:'' };
+  if (saved && saved.user_answer) { try { peel = JSON.parse(saved.user_answer); } catch(e) {} }
+
+  container.innerHTML = `
+    <div class="flex items-center justify-between mb-3">
+      <span class="tag-pill bg-red-100 text-red-700">${item.topic || '自訂'}</span>
+      <button onclick="toggleStar('part3','${item.id}','speaking').then(()=>setTimeout(renderPart3,500))" class="p-2 rounded-lg hover:bg-gray-100 transition">
+        <i data-lucide="star" class="w-5 h-5 ${isStarred ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}"></i>
+      </button>
+    </div>
+    <div class="bg-surface rounded-xl p-4 mb-4 shadow-sm border-l-4 border-red-400">
+      <p class="text-lg font-medium leading-relaxed">"${item.q}"</p>
+    </div>
+    <div class="space-y-3 mb-4">
+      <div class="bg-indigo-50 rounded-xl p-3">
+        <label class="block text-xs font-semibold text-indigo-700 mb-1">🎯 P — Point (你嘅觀點)</label>
+        <textarea id="peel-p" rows="2" class="w-full px-3 py-2 rounded-lg border border-indigo-200 bg-white text-sm resize-none" placeholder="I believe that...">${peel.point||''}</textarea>
+      </div>
+      <div class="bg-emerald-50 rounded-xl p-3">
+        <label class="block text-xs font-semibold text-emerald-700 mb-1">📊 E — Evidence (例子/證據)</label>
+        <textarea id="peel-e1" rows="2" class="w-full px-3 py-2 rounded-lg border border-emerald-200 bg-white text-sm resize-none" placeholder="For instance...">${peel.evidence||''}</textarea>
+      </div>
+      <div class="bg-amber-50 rounded-xl p-3">
+        <label class="block text-xs font-semibold text-amber-700 mb-1">💡 E — Explanation (解釋)</label>
+        <textarea id="peel-e2" rows="2" class="w-full px-3 py-2 rounded-lg border border-amber-200 bg-white text-sm resize-none" placeholder="This shows that...">${peel.explanation||''}</textarea>
+      </div>
+      <div class="bg-rose-50 rounded-xl p-3">
+        <label class="block text-xs font-semibold text-rose-700 mb-1">🔗 L — Link (總結/扣題)</label>
+        <textarea id="peel-l" rows="2" class="w-full px-3 py-2 rounded-lg border border-rose-200 bg-white text-sm resize-none" placeholder="Therefore...">${peel.link||''}</textarea>
+      </div>
+    </div>
+    <button onclick="savePart3('${item.id}')" class="w-full py-2.5 rounded-xl bg-accent text-white text-sm font-medium hover:bg-indigo-600 transition mb-4">💾 儲存 PEEL</button>
+    <div class="flex gap-2">
+      <button onclick="prevPart3()" class="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-medium hover:bg-gray-50 transition ${currentPart3Idx===0?'opacity-30 pointer-events-none':''}">← 上一題</button>
+      <button onclick="nextPart3()" class="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-medium hover:bg-gray-50 transition ${currentPart3Idx===allPart3.length-1?'opacity-30 pointer-events-none':''}">下一題 →</button>
+    </div>
+  `;
+  lucide.createIcons();
+}
+async function savePart3(id) {
+  const peel = { point: document.getElementById('peel-p').value.trim(), evidence: document.getElementById('peel-e1').value.trim(), explanation: document.getElementById('peel-e2').value.trim(), link: document.getElementById('peel-l').value.trim() };
+  if (!peel.point) { showToast('請至少寫 Point'); return; }
+  await saveAnswer('part3', id, JSON.stringify(peel), 'speaking');
+}
+function nextPart3() { const all = [...PART3_DATA, ...(customQuestions.part3 || [])]; if (currentPart3Idx < all.length - 1) { currentPart3Idx++; renderPart3(); } }
+function prevPart3() { if (currentPart3Idx > 0) { currentPart3Idx--; renderPart3(); } }
+
+// ========== REVIEW SCREEN & MANAGE ==========
+let reviewEditingId = null;
+let reviewEditingType = null;
+let selectedReviewItems = new Set();
+let reviewSortBy = 'newest';
+
+document.getElementById('btn-review-nav').addEventListener('click', () => { showScreen('review'); selectedReviewItems.clear(); renderReview(); });
+
+function filterReview(filter) {
+  currentReviewFilter = filter;
+  selectedReviewItems.clear();
+  document.querySelectorAll('.review-filter-btn').forEach(btn => {
+    const isActive = btn.dataset.filter === filter;
+    btn.className = `review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium ${isActive ? 'bg-accent text-white' : 'bg-gray-100 text-muted'}`;
+  });
+  renderReview();
+}
+function sortReview(sortType) { reviewSortBy = sortType; selectedReviewItems.clear(); renderReview(); }
+function toggleReviewSelect(id) { if (selectedReviewItems.has(id)) selectedReviewItems.delete(id); else selectedReviewItems.add(id); renderReview(); }
+
+async function batchDeleteSelected() {
+  if (selectedReviewItems.size === 0) return;
+  for (const id of selectedReviewItems) {
+    const item = allData.find(d => d.__backendId === id);
+    if (item) await window.dataSdk.delete(item);
+  }
+  showToast(`已刪除 ${selectedReviewItems.size} 個項目 ✓`);
+  selectedReviewItems.clear();
+  renderReview();
+}
+
+async function batchStarSelected() {
+  if (selectedReviewItems.size === 0) return;
+  for (const id of selectedReviewItems) {
+    const item = allData.find(d => d.__backendId === id);
+    if (item) await window.dataSdk.update({ ...item, starred: !item.starred });
+  }
+  showToast(`已更新 ${selectedReviewItems.size} 個項目 ✓`);
+  selectedReviewItems.clear();
+  renderReview();
+}
+
+function renderReview() {
+  const container = document.getElementById('review-content');
+  const emptyEl = document.getElementById('review-empty');
+  let items = getUserData().filter(d => d.type === 'answer');
+
+  if (currentReviewFilter === 'starred') items = items.filter(d => d.starred);
+  else if (currentReviewFilter === 'paraphrase') items = items.filter(d => d.component === 'paraphrase');
+  else if (currentReviewFilter === 'grammar') items = items.filter(d => d.component === 'grammar');
+  else if (currentReviewFilter === 'vocab') items = items.filter(d => d.component === 'vocab' || d.component === 'vocab_custom');
+  else if (currentReviewFilter === 'skeleton') items = items.filter(d => d.component === 'skeleton');
+  else if (currentReviewFilter === 'speaking') items = items.filter(d => ['part1','part2','part3'].includes(d.component));
+
+  if (items.length === 0) { container.innerHTML = ''; emptyEl.classList.remove('hidden'); lucide.createIcons(); return; }
+  emptyEl.classList.add('hidden');
+
+  if (reviewSortBy === 'newest') items.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+  else if (reviewSortBy === 'oldest') items.sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''));
+  else if (reviewSortBy === 'starred') items.sort((a, b) => (b.starred ? 1 : 0) - (a.starred ? 1 : 0));
+
+  let html = `
+    <div class="flex gap-2 mb-3 overflow-x-auto pb-1">
+      <button onclick="sortReview('newest')" class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${reviewSortBy === 'newest' ? 'bg-accent text-white' : 'bg-gray-100 text-muted'}">最新優先</button>
+      <button onclick="sortReview('oldest')" class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${reviewSortBy === 'oldest' ? 'bg-accent text-white' : 'bg-gray-100 text-muted'}">最舊優先</button>
+      <button onclick="sortReview('starred')" class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${reviewSortBy === 'starred' ? 'bg-accent text-white' : 'bg-gray-100 text-muted'}">⭐ 優先</button>
+    </div>
+  `;
+
+  if (selectedReviewItems.size > 0) {
+    html += `
+      <div class="bg-indigo-50 rounded-xl p-3 mb-3 flex items-center justify-between">
+        <span class="text-sm font-medium text-indigo-700">已選 ${selectedReviewItems.size} 個</span>
+        <div class="flex gap-2">
+          <button onclick="batchStarSelected()" class="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 text-xs font-medium hover:bg-amber-200 transition">⭐ 收藏</button>
+          <button onclick="batchDeleteSelected()" class="px-3 py-1.5 rounded-lg bg-red-100 text-red-700 text-xs font-medium hover:bg-red-200 transition">🗑️ 刪除</button>
+        </div>
+      </div>
+    `;
+  }
+
+  html += '<div class="space-y-3">';
+  items.forEach(item => {
+    const compLabel = { paraphrase:'改寫', grammar:'Grammar', vocab:'Vocab', vocab_custom:'自訂Vocab', skeleton:'Skeleton', part1:'Part 1', part2:'Part 2', part3:'Part 3 PEEL' }[item.component] || item.component;
+    const compColor = { paraphrase:'violet', grammar:'blue', vocab:'emerald', vocab_custom:'indigo', skeleton:'rose', part1:'amber', part2:'orange', part3:'red' }[item.component] || 'gray';
+    const date = item.timestamp ? new Date(item.timestamp).toLocaleDateString('zh-HK') : '';
+    const isSelected = selectedReviewItems.has(item.__backendId);
+
+    let questionText = '';
+    if (item.component === 'paraphrase') { const q = PARAPHRASE_DATA.find(p => p.id === item.question_id); questionText = q ? q.original : ''; }
+    else if (item.component === 'grammar') { const q = GRAMMAR_DATA.find(g => g.id === item.question_id); questionText = q ? q.topic : ''; }
+    else if (item.component === 'vocab') { const q = VOCAB_DATA.find(v => v.id === item.question_id); questionText = q ? q.word + ' — ' + q.meaning : ''; }
+    else if (item.component === 'vocab_custom') { questionText = item.question_id + ' — ' + item.user_answer; }
+    else if (item.component === 'skeleton') { const q = SKELETON_DATA.find(s => s.id === item.question_id); questionText = q ? q.question.substring(0, 80) + '...' : ''; }
+    else if (item.component === 'part1') { const q = PART1_DATA.find(p => p.id === item.question_id); questionText = q ? q.q : ''; }
+    else if (item.component === 'part2') { const q = PART2_DATA.find(p => p.id === item.question_id); questionText = q ? q.card.substring(0, 60) + '...' : ''; }
+    else if (item.component === 'part3') { const q = PART3_DATA.find(p => p.id === item.question_id); questionText = q ? q.q : ''; }
+
+    let answerPreview = item.user_answer || '';
+    if (item.component === 'skeleton' || item.component === 'part3') { try { const parsed = JSON.parse(answerPreview); answerPreview = Object.values(parsed).filter(Boolean).join(' | '); } catch(e) {} }
+
+    html += `
+      <div class="bg-surface rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition border-l-4 ${isSelected ? 'border-accent bg-indigo-50' : 'border-transparent'}" onclick="openReviewDetail('${item.__backendId}')">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-center gap-2 flex-wrap flex-1">
+            <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleReviewSelect('${item.__backendId}')" class="w-4 h-4 rounded accent-accent cursor-pointer">
+            <span class="tag-pill bg-${compColor}-100 text-${compColor}-700">${compLabel}</span>
+            ${item.starred ? '<span class="text-amber-400">⭐</span>' : ''}
+          </div>
+          <span class="text-xs text-gray-400">${date}</span>
+        </div>
+        <p class="text-sm font-medium mb-1 line-clamp-2">${questionText}</p>
+        ${answerPreview ? `<p class="text-xs text-muted leading-relaxed line-clamp-3 bg-gray-50 rounded-lg p-2 mt-2">${answerPreview}</p>` : ''}
+      </div>
+    `;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+  lucide.createIcons();
+}
+
+function openReviewDetail(id) {
+  const item = allData.find(d => d.__backendId === id);
+  if (!item) return;
+  reviewEditingId = id;
+  reviewEditingType = item.component;
+
+  let fullQuestion = '';
+  if (item.component === 'paraphrase') { const q = PARAPHRASE_DATA.find(p => p.id === item.question_id); fullQuestion = q ? q.original : ''; }
+  else if (item.component === 'grammar') { const q = GRAMMAR_DATA.find(g => g.id === item.question_id); fullQuestion = q ? `${q.topic}: ${q.rule}` : ''; }
+  else if (item.component === 'vocab') { const q = VOCAB_DATA.find(v => v.id === item.question_id); fullQuestion = q ? `${q.word} — ${q.meaning}\n"${q.example}"` : ''; }
+  else if (item.component === 'vocab_custom') { fullQuestion = `${item.question_id} — ${item.user_answer}\n${item.notes || ''}`; }
+  else if (item.component === 'skeleton') { const q = SKELETON_DATA.find(s => s.id === item.question_id); fullQuestion = q ? q.question : ''; }
+  else if (item.component === 'part1') { const q = PART1_DATA.find(p => p.id === item.question_id); fullQuestion = q ? q.q : ''; }
+  else if (item.component === 'part2') { const q = PART2_DATA.find(p => p.id === item.question_id); fullQuestion = q ? q.card : ''; }
+  else if (item.component === 'part3') { const q = PART3_DATA.find(p => p.id === item.question_id); fullQuestion = q ? q.q : ''; }
+
+  let detailHtml = `
+    <div class="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-4" onclick="if(event.target===this)closeReviewDetail()">
+      <div class="bg-surface w-full max-w-lg rounded-2xl p-5 max-h-[85vh] overflow-y-auto shadow-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold">📚 溫習詳細</h3>
+          <button onclick="closeReviewDetail()" class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="bg-gray-50 rounded-xl p-3 mb-4">
+          <p class="text-xs text-muted font-medium mb-1">📌 題目</p>
+          <p class="text-sm leading-relaxed whitespace-pre-line">${fullQuestion}</p>
+        </div>
+        <div class="bg-blue-50 rounded-xl p-3 mb-4">
+          <p class="text-xs text-blue-700 font-medium mb-1">✏️ 你嘅回答</p>
+          <textarea id="review-edit-answer" rows="4" class="w-full px-3 py-2 rounded-lg border border-blue-200 bg-white text-sm resize-none font-medium">${item.user_answer || ''}</textarea>
+        </div>
+        ${item.notes ? `
+          <div class="bg-amber-50 rounded-xl p-3 mb-4">
+            <p class="text-xs text-amber-700 font-medium mb-1">📝 備註</p>
+            <p class="text-sm whitespace-pre-line">${item.notes}</p>
+          </div>
+        ` : ''}
+        <div class="grid grid-cols-3 gap-2 mb-4">
+          <button onclick="saveEditedAnswer('${id}')" class="py-2 rounded-lg bg-accent text-white text-xs font-medium hover:bg-indigo-600 transition">💾 保存</button>
+          <button onclick="toggleStar('${item.component}','${item.question_id}','${item.category}').then(()=>setTimeout(()=>{renderReview();}, 500))" class="${item.starred ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-muted'} py-2 rounded-lg text-xs font-medium transition">
+            ${item.starred ? '⭐ 已收藏' : '☆ 收藏'}
+          </button>
+          <button onclick="deleteReviewAnswer('${id}').then(()=>closeReviewDetail())" class="py-2 rounded-lg bg-red-100 text-red-700 text-xs font-medium hover:bg-red-200 transition">🗑️ 刪除</button>
+        </div>
+      </div>
+    </div>
+  `;
+  let modalEl = document.getElementById('review-modal');
+  if (!modalEl) { modalEl = document.createElement('div'); modalEl.id = 'review-modal'; document.body.appendChild(modalEl); }
+  modalEl.innerHTML = detailHtml;
+  lucide.createIcons();
+}
+function closeReviewDetail() { const modal = document.getElementById('review-modal'); if (modal) modal.remove(); reviewEditingId = null; reviewEditingType = null; }
+async function saveEditedAnswer(id) {
+  const item = allData.find(d => d.__backendId === id);
+  if (!item) return;
+  const newAnswer = document.getElementById('review-edit-answer').value;
+  const r = await window.dataSdk.update({ ...item, user_answer: newAnswer });
+  if (r.isOk) { showToast('已保存 ✓'); closeReviewDetail(); renderReview(); }
+}
+async function deleteReviewAnswer(id) {
+  const item = allData.find(d => d.__backendId === id);
+  if (!item) return;
+  const r = await window.dataSdk.delete(item);
+  if (r.isOk) { showToast('已刪除 ✓'); renderReview(); }
+}
+
+// ========== MANAGE FUNCTIONS ==========
+function showManagePanel(comp) { managingComponent = comp; showScreen('manage-detail'); renderManageDetail(); updateManageCounts(); }
+function updateManageCounts() {
+  document.getElementById('count-para').textContent = PARAPHRASE_DATA.length + (customQuestions.paraphrase?.length || 0);
+  document.getElementById('count-gram').textContent = GRAMMAR_DATA.length + (customQuestions.grammar?.length || 0);
+  document.getElementById('count-part1').textContent = PART1_DATA.length + (customQuestions.part1?.length || 0);
+  document.getElementById('count-part3').textContent = PART3_DATA.length + (customQuestions.part3?.length || 0);
+}
+function renderManageDetail() {
+  const container = document.getElementById('manage-content');
+  const title = document.getElementById('manage-title');
+  if (managingComponent === 'paraphrase') {
+    title.textContent = 'Paraphrasing - 新增/編輯';
+    container.innerHTML = `<div class="space-y-4"><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">原句</label><textarea id="manage-original" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Enter the Band 6.0 sentence..."></textarea></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">提示 Hint</label><input id="manage-hint" type="text" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm" placeholder="e.g., Try: passive voice + academic vocab"></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">參考答案 (可選)</label><textarea id="manage-sample" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Sample paraphrase..."></textarea></div><button onclick="addCustomQuestion('paraphrase')" class="w-full py-3 rounded-xl bg-accent text-white font-medium hover:bg-indigo-600 transition">✅ 新增 Paraphrase 題</button></div>`;
+  } else if (managingComponent === 'grammar') {
+    title.textContent = 'Grammar Focus - 新增/編輯';
+    container.innerHTML = `<div class="space-y-4"><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">句式主題</label><input id="manage-topic" type="text" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm" placeholder="e.g., Cleft Sentences"></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">規則說明</label><textarea id="manage-rule" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Grammar rule..."></textarea></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">例句</label><textarea id="manage-example" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Example sentence..."></textarea></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">練習題</label><textarea id="manage-practice" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Practice question..."></textarea></div><button onclick="addCustomQuestion('grammar')" class="w-full py-3 rounded-xl bg-accent text-white font-medium hover:bg-indigo-600 transition">✅ 新增 Grammar 課</button></div>`;
+  } else if (managingComponent === 'part1') {
+    title.textContent = 'Speaking Part 1 - 新增/編輯';
+    container.innerHTML = `<div class="space-y-4"><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">話題分類</label><input id="manage-topic" type="text" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm" placeholder="e.g., Technology, Lifestyle"></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">問題</label><textarea id="manage-question" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="e.g., Do you prefer online or offline learning?"></textarea></div><button onclick="addCustomQuestion('part1')" class="w-full py-3 rounded-xl bg-accent text-white font-medium hover:bg-indigo-600 transition">✅ 新增 Part 1 題</button></div>`;
+  } else if (managingComponent === 'part3') {
+    title.textContent = 'Speaking Part 3 - 新增/編輯';
+    container.innerHTML = `<div class="space-y-4"><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">話題分類</label><input id="manage-topic" type="text" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm" placeholder="e.g., Technology, Environment"></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">問題</label><textarea id="manage-question" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="e.g., How does artificial intelligence impact society?"></textarea></div><button onclick="addCustomQuestion('part3')" class="w-full py-3 rounded-xl bg-accent text-white font-medium hover:bg-indigo-600 transition">✅ 新增 Part 3 題</button></div>`;
+  }
+  lucide.createIcons();
+}
+
+function addCustomQuestion(comp) {
+  const id = 'custom_' + Date.now();
+  let newQ;
+  if (comp === 'paraphrase') {
+    const original = document.getElementById('manage-original').value.trim();
+    const hint = document.getElementById('manage-hint').value.trim();
+    const sample = document.getElementById('manage-sample').value.trim();
+    if (!original || !hint) { showToast('請輸入原句同提示'); return; }
+    newQ = { id, original, hint, sample };
+  } else if (comp === 'grammar') {
+    const topic = document.getElementById('manage-topic').value.trim();
+    const rule = document.getElementById('manage-rule').value.trim();
+    const example = document.getElementById('manage-example').value.trim();
+    const practice = document.getElementById('manage-practice').value.trim();
+    if (!topic || !rule || !example) { showToast('請輸入主題、規則同例句'); return; }
+    newQ = { id, topic, rule, example, practice };
+  } else if (comp === 'part1' || comp === 'part3') {
+    const topic = document.getElementById('manage-topic').value.trim();
+    const q = document.getElementById('manage-question').value.trim();
+    if (!topic || !q) { showToast('請輸入話題同問題'); return; }
+    newQ = { id, topic, q };
+  }
+  saveCustomQuestionToDB(comp, newQ);
+}
+
+async function saveCustomQuestionToDB(comp, questionData) {
+  if (allData.length >= 999) { showToast('已達儲存上限 (999)'); return; }
+  const result = await window.dataSdk.create({ type: 'custom_question', user: currentUser, category: 'custom', component: comp, question_id: questionData.id, user_answer: '', starred: false, tags: 'custom_question', timestamp: new Date().toISOString(), notes: '', score: 0, custom_data: JSON.stringify(questionData) });
+  if (result.isOk) { showToast(`已新增 ${comp} 題 ✅`); updateManageCounts(); }
+}
+
+function deleteCustomQuestion(comp, id) {
+  const record = allData.find(d => d.type === 'custom_question' && d.user === currentUser && d.component === comp && d.question_id === id);
+  if (record) { window.dataSdk.delete(record).then(() => { showToast('已刪除 ✓'); updateManageCounts(); }); }
+}
+
+// ========== DATA SDK INIT ==========
+(async () => {
+  const r = await window.dataSdk.init(dataHandler);
+  if (!r.isOk) console.error('Data SDK init failed');
+  
+  // 啟動時自動去 Google Sheet 拉題目
+  await loadQuestionsFromGoogleSheet(); 
+  
+  lucide.createIcons();
+  updateManageCounts();
+})();
+</script>
+ </body>
+</html>
