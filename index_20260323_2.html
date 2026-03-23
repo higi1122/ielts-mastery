@@ -26,16 +26,6 @@ textarea:focus, input:focus { outline: none; box-shadow: 0 0 0 3px rgba(99,102,2
 .locked-overlay { backdrop-filter: blur(4px); }
 </style>
   <script>
-// ========== SDK 替身 (防止系統崩潰) ==========
-window.dataSdk = {
-  init: async () => ({ isOk: true }),
-  create: async (d) => { d.__backendId = Date.now().toString(); allData.push(d); return { isOk: true }; },
-  update: async () => ({ isOk: true }),
-  delete: async () => ({ isOk: true })
-};
-window.elementSdk = { init: () => {}, setConfig: () => {} };
-
-// ========== UI 顏色設定 ==========
 tailwind.config = {
   theme: {
     extend: {
@@ -51,6 +41,7 @@ tailwind.config = {
   }
 }
 </script>
+  <style>body { box-sizing: border-box; }</style>
  </head>
  <body class="h-full bg-cream text-ink">
   <div id="app" class="h-full w-full overflow-auto">
@@ -75,7 +66,7 @@ tailwind.config = {
        <p class="text-sm text-muted">Welcome back,</p>
        <h2 id="dash-username" class="font-display text-2xl font-bold"></h2>
       </div><button id="btn-review-nav" class="p-2.5 rounded-xl bg-accent2/10 text-accent2 hover:bg-accent2/20 transition" title="溫習"> <i data-lucide="bookmark" class="w-5 h-5"></i> </button>
-      </header>
+     </header>
      <div id="dash-last-session" class="bg-surface rounded-xl p-4 mb-6 flex items-center gap-3 shadow-sm fade-in">
       <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
        <i data-lucide="clock" class="w-5 h-5 text-accent"></i>
@@ -253,13 +244,7 @@ tailwind.config = {
       <h2 class="font-display text-xl font-bold">📚 溫習中心</h2>
      </header>
      <div class="flex gap-2 mb-4 flex-wrap fade-in">
-      <button onclick="filterReview('all')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-accent text-white" data-filter="all">全部</button>
-      <button onclick="filterReview('starred')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="starred">⭐ 已收藏</button>
-      <button onclick="filterReview('paraphrase')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="paraphrase">改寫</button> 
-      <button onclick="filterReview('grammar')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="grammar">Grammar</button> 
-      <button onclick="filterReview('vocab')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="vocab">Vocab</button>
-      <button onclick="filterReview('skeleton')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="skeleton">Skeleton</button> 
-      <button onclick="filterReview('speaking')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="speaking">Speaking</button>
+      <button onclick="filterReview('all')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-accent text-white" data-filter="all">全部</button> <button onclick="filterReview('starred')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="starred">⭐ 已收藏</button> <button onclick="filterReview('paraphrase')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="paraphrase">改寫</button> <button onclick="filterReview('grammar')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="grammar">Grammar</button> <button onclick="filterReview('vocab')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="vocab">Vocab</button> <button onclick="filterReview('skeleton')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="skeleton">Skeleton</button> <button onclick="filterReview('speaking')" class="review-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-muted" data-filter="speaking">Speaking</button>
      </div>
      <div id="review-content" class="space-y-3 fade-in"></div>
      <div id="review-empty" class="hidden text-center py-12">
@@ -324,83 +309,203 @@ let currentScreen = 'login';
 let currentReviewFilter = 'all';
 let part2Timer = null;
 let part2Seconds = 60;
-let part2Phase = 'prep'; // prep | speak
+let part2Phase = 'prep'; 
 let speakTimer = null;
 let speakSeconds = 120;
-let customQuestions = { paraphrase: [], grammar: [], part1: [], part3: [] }; // Store custom questions from Data SDK
-let managingComponent = ''; // What we're currently managing
+let customQuestions = { paraphrase: [], grammar: [], part1: [], part3: [] }; 
+let managingComponent = ''; 
 
-// ========== GOOGLE SHEETS API ==========
-const API_URL = 'https://script.google.com/macros/s/AKfycbyc2fgUN1JMV9wrlYvOAGnRv6sgBaAx1j1EN5KDUQJzok2CkItWcvQHCVQLpXJLF5gF/exec';
+// ========== GOOGLE SHEETS API CONFIG ==========
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyc2fgUN1JMV9wrlYvOAGnRv6sgBaAx1j1EN5KDUQJzok2CkItWcvQHCVQLpXJLF5gF/exec';
 
-async function loadQuestionsFromGoogleSheet() {
-  try {
-    const response = await fetch(API_URL);
-    const allQuestions = await response.json();
-    
-    if (allQuestions && allQuestions.length > 0) {
-        // 將拉返嚟嘅 data 分類塞入變數。如果冇，就繼續用預設資料。
-        const sheetParaphrase = allQuestions.filter(q => q.component === 'paraphrase');
-        if (sheetParaphrase.length > 0) PARAPHRASE_DATA = sheetParaphrase;
-        
-        const sheetGrammar = allQuestions.filter(q => q.component === 'grammar');
-        if (sheetGrammar.length > 0) GRAMMAR_DATA = sheetGrammar;
-        
-        const sheetVocab = allQuestions.filter(q => q.component === 'vocab');
-        if (sheetVocab.length > 0) VOCAB_DATA = sheetVocab;
-        
-        const sheetSkeleton = allQuestions.filter(q => q.component === 'skeleton');
-        if (sheetSkeleton.length > 0) SKELETON_DATA = sheetSkeleton;
-        
-        const sheetPart1 = allQuestions.filter(q => q.component === 'part1');
-        if (sheetPart1.length > 0) PART1_DATA = sheetPart1;
-        
-        const sheetPart2 = allQuestions.filter(q => q.component === 'part2');
-        if (sheetPart2.length > 0) PART2_DATA = sheetPart2;
-        
-        const sheetPart3 = allQuestions.filter(q => q.component === 'part3');
-        if (sheetPart3.length > 0) PART3_DATA = sheetPart3;
-
-        console.log("✅ 成功從 Google Sheet 載入題目！");
-        updateManageCounts();
-        
-        // 如果停留緊喺相關畫面，幫手重新繪製
-        if (currentScreen === 'paraphrase') renderParaphrase();
-        if (currentScreen === 'grammar') renderGrammar();
+// 客製化 Data SDK (模擬原有嘅 window.dataSdk，並加入 Optimistic UI，反應會好快)
+window.dataSdk = {
+  dataHandler: null,
+  localData: [],
+  
+  async init(handler) {
+    this.dataHandler = handler;
+    try {
+      const res = await fetch(`${GAS_API_URL}?action=read`);
+      this.localData = await res.json();
+      this.dataHandler.onDataChanged(this.localData);
+      return { isOk: true };
+    } catch (e) {
+      console.error('Failed to fetch data from Google Sheets', e);
+      return { isOk: false };
     }
-  } catch (error) {
-    console.warn("載入雲端題庫失敗，將使用本機預設題庫", error);
+  },
+  
+  async create(record) {
+    // Optimistic Update: 先更新本地介面
+    record.__backendId = 'local_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    this.localData.push(record);
+    this.dataHandler.onDataChanged(this.localData);
+
+    // 後台靜默發送上 Google Sheets (用 text/plain 避免 CORS preflight)
+    fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'create', data: record })
+    }).catch(e => console.error('Error saving:', e));
+    
+    return { isOk: true };
+  },
+
+  async update(record) {
+    const idx = this.localData.findIndex(d => d.__backendId === record.__backendId || 
+               (d.type === record.type && d.component === record.component && d.question_id === record.question_id && d.user === record.user));
+    if (idx > -1) {
+      if(!record.__backendId) record.__backendId = this.localData[idx].__backendId;
+      this.localData[idx] = record;
+      this.dataHandler.onDataChanged(this.localData);
+    }
+
+    fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'update', data: record })
+    }).catch(e => console.error('Error updating:', e));
+
+    return { isOk: true };
+  },
+
+  async delete(record) {
+    this.localData = this.localData.filter(d => d.__backendId !== record.__backendId);
+    this.dataHandler.onDataChanged(this.localData);
+
+    fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete', id: record.__backendId })
+    }).catch(e => console.error('Error deleting:', e));
+
+    return { isOk: true };
   }
+};
+
+// ========== UI CONFIGURATION ==========
+const defaultConfig = {
+  app_title: 'IELTS Mastery Hub',
+  background_color: '#faf8f5',
+  surface_color: '#ffffff',
+  text_color: '#1e1b2e',
+  accent_color: '#6366f1',
+  accent2_color: '#f59e0b',
+  font_family: 'DM Sans',
+  font_size: 16
+};
+
+function applyConfig(config) {
+  document.body.style.backgroundColor = config.background_color;
+  document.body.style.color = config.text_color;
+  document.body.style.fontFamily = `${config.font_family}, sans-serif`;
+  document.body.style.fontSize = config.font_size + 'px';
+  document.querySelectorAll('.bg-surface').forEach(el => el.style.backgroundColor = config.surface_color);
+  document.querySelectorAll('.bg-accent').forEach(el => el.style.backgroundColor = config.accent_color);
+  document.querySelectorAll('.text-accent').forEach(el => el.style.color = config.accent_color);
+  const title = document.getElementById('main-title');
+  if (title) title.textContent = config.app_title;
 }
 
-// ========== REFERENCE DATA (將 const 改成 let，作為防呆 Fallback) ==========
-let PARAPHRASE_DATA = [
-  { id:'p1', component:'paraphrase', topic:'', content:'Many people think that technology is good for society.', detail:'Try: passive voice + advanced vocab', extra:'It is widely acknowledged that technological advancements have yielded substantial benefits for society.' },
-  { id:'p2', component:'paraphrase', topic:'', content:'Students should study hard to get good grades.', detail:'Try: conditional + formal register', extra:'Were students to dedicate themselves diligently to their studies, the attainment of exemplary academic results would become considerably more feasible.' }
+// 套用預設主題設計
+applyConfig(defaultConfig);
+
+
+// ========== REFERENCE DATA ==========
+const PARAPHRASE_DATA = [
+  { id:'p1', original:'Many people think that technology is good for society.', hint:'Try: passive voice + advanced vocab', sample:'It is widely acknowledged that technological advancements have yielded substantial benefits for society.' },
+  { id:'p2', original:'Students should study hard to get good grades.', hint:'Try: conditional + formal register', sample:'Were students to dedicate themselves diligently to their studies, the attainment of exemplary academic results would become considerably more feasible.' },
+  { id:'p3', original:'The government should spend more money on education.', hint:'Try: nominalisation + hedging', sample:'Increased governmental allocation of funding towards the education sector would arguably constitute a prudent investment in the nation\'s future.' },
+  { id:'p4', original:'More and more people are moving to cities.', hint:'Try: advanced subject + present perfect', sample:'There has been a discernible surge in urban migration, with an escalating number of individuals gravitating towards metropolitan areas.' },
+  { id:'p5', original:'Children learn better when they play games.', hint:'Try: it-cleft + academic vocab', sample:'It is through the integration of ludic activities that children demonstrate markedly enhanced cognitive acquisition.' },
+  { id:'p6', original:'Social media has changed how people communicate.', hint:'Try: nominalisation + has led to', sample:'The proliferation of social media platforms has fundamentally transformed interpersonal communication paradigms.' },
+  { id:'p7', original:'It is important to protect the environment.', hint:'Try: it-cleft + conservation vocabulary', sample:'It is of paramount importance that environmental conservation measures be rigorously implemented and upheld.' },
+  { id:'p8', original:'Young people today use smartphones too much.', hint:'Try: gerund + excessive', sample:'An excessive reliance on smartphone usage amongst younger demographics has become increasingly prevalent in contemporary society.' },
+  { id:'p9', original:'Reading books is better than watching TV.', hint:'Try: comparative + cognitive benefits', sample:'The cognitive engagement derived from literary pursuits demonstrably surpasses the passive nature of television consumption.' },
+  { id:'p10', original:'Exercise is good for your health.', hint:'Try: nominalisation + holistic wellbeing', sample:'The engagement in regular physical activity constitutes an indispensable mechanism for the enhancement of comprehensive health and wellbeing.' },
+  { id:'p11', original:'People should learn English because it is useful.', hint:'Try: acquisition + instrumental value', sample:'The acquisition of English linguistic competence possesses considerable instrumental value in facilitating international communication and professional advancement.' },
+  { id:'p12', original:'Travelling helps people learn about different cultures.', hint:'Try: passive + exposure', sample:'Geographical mobility facilitates profound exposure to diverse cultural paradigms and practices.' },
 ];
 
-let GRAMMAR_DATA = [
-  { id:'g1', component:'grammar', topic:'Gerund as Subject', content:'用 Gerund (-ing form) 做主語令句子更正式。', detail:'Implementing renewable energy policies is essential for sustainable development.', extra:'用 gerund 改寫: "We need to reduce carbon emissions."' },
+const GRAMMAR_DATA = [
+  { id:'g1', topic:'Gerund as Subject', rule:'用 Gerund (-ing form) 做主語令句子更正式。', example:'Implementing renewable energy policies is essential for sustainable development.', practice:'用 gerund 改寫: "We need to reduce carbon emissions."' },
+  { id:'g2', topic:'Third Conditional', rule:'If + past perfect, would have + past participle。用嚟假設過去冇發生嘅事。', example:'If the government had invested more in education, literacy rates would have improved significantly.', practice:'用 third conditional 寫一句關於環保嘅句子。' },
+  { id:'g3', topic:'Inversion for Emphasis', rule:'將否定副詞放句首造成倒裝，增加正式感。常用: Not only, Rarely, Seldom, Never', example:'Not only does regular exercise improve physical health, but it also enhances mental well-being.', practice:'用 Not only... but also 改寫一句關於科技嘅句子。' },
+  { id:'g4', topic:'Relative Clauses (Non-defining)', rule:'用逗號隔開嘅 non-defining relative clause 補充額外資訊。', example:'Social media, which has become ubiquitous in modern life, poses both opportunities and challenges for young people.', practice:'加入 non-defining relative clause: "Climate change affects developing countries."' },
+  { id:'g5', topic:'It-cleft Sentence', rule:'It is/was + 強調部分 + that/who... 用嚟強調特定元素。', example:'It is the lack of government regulation that has exacerbated environmental degradation.', practice:'用 It-cleft 強調 "education" 嘅重要性。' },
+  { id:'g6', topic:'Passive Reporting Verbs', rule:'It is + past participle + that... 用嚟引述觀點，增加客觀性。常用: believed, argued, suggested, claimed', example:'It is widely believed that early childhood education plays a pivotal role in cognitive development.', practice:'用 passive reporting verb 改寫: "People say technology makes life easier."' },
+  { id:'g7', topic:'Present Perfect Continuous', rule:'Have/has been + -ing 表示從過去持續到現在嘅動作。', example:'Scientists have been conducting extensive research on renewable energy for decades.', practice:'用 present perfect continuous 寫一句關於語言學習嘅句子。' },
+  { id:'g8', topic:'Mixed Conditionals', rule:'主句同從句用唔同時態，表示過去嘅狀況影響現在結果。', example:'If you had studied harder last year, you would be performing better in class now.', practice:'創作一句 mixed conditional 句子。' },
+  { id:'g9', topic:'Nominalization', rule:'將動詞改為名詞形式，增加正式感。', example:'The implementation of climate policies is crucial for environmental protection.', practice:'用 nominalization 改寫: "We must introduce renewable energy."' },
+  { id:'g10', topic:'Parallel Structure', rule:'列舉項目時保持結構一致，提升句子平衡感。', example:'The conference addressed innovation, sustainability, and technological advancement equally.', practice:'寫一句有 3 個平衡項目嘅句子。' },
+  { id:'g11', topic:'Emphatic Stress with Do/Does/Did', rule:'用 do/does/did 加強語氣，強調事實。', example:'While some disagree, the evidence does support the importance of early childhood education.', practice:'用 emphatic do 改寫：「他確實完成了作業。」' },
+  { id:'g12', topic:'Comparative Structures', rule:'用 "The + comparative, the + comparative" 表達平衡關係。', example:'The more societies invest in education, the greater the long-term economic benefits become.', practice:'寫一句 "The more..., the more..." 嘅句子。' },
 ];
 
-let VOCAB_DATA = [
-  { id:'v1', component:'vocab', topic:'Academic', content:'proliferation', detail:'急速增長/擴散', extra:'The proliferation of smartphones has transformed communication patterns.' },
+const VOCAB_DATA = [
+  { id:'v1', word:'proliferation', meaning:'急速增長/擴散', example:'The proliferation of smartphones has transformed communication patterns.', category:'Academic' },
+  { id:'v2', word:'exacerbate', meaning:'使惡化', example:'Air pollution exacerbates respiratory conditions in urban areas.', category:'Problem/Solution' },
+  { id:'v3', word:'mitigate', meaning:'減輕/緩和', example:'Governments should implement policies to mitigate the effects of climate change.', category:'Problem/Solution' },
+  { id:'v4', word:'ubiquitous', meaning:'無處不在的', example:'Social media has become ubiquitous in contemporary society.', category:'Description' },
+  { id:'v5', word:'detrimental', meaning:'有害的', example:'Excessive screen time can be detrimental to children\'s development.', category:'Opinion' },
+  { id:'v6', word:'paramount', meaning:'最重要的', example:'Access to quality education is of paramount importance for social mobility.', category:'Opinion' },
+  { id:'v7', word:'facilitate', meaning:'促進/使容易', example:'Technology can facilitate collaboration between students across different countries.', category:'Academic' },
+  { id:'v8', word:'underscore', meaning:'強調', example:'Recent studies underscore the significance of mental health awareness.', category:'Academic' },
+  { id:'v9', word:'substantial', meaning:'實質的/大量的', example:'The company made substantial investments in renewable energy research.', category:'Academic' },
+  { id:'v10', word:'imperative', meaning:'絕對必要的', example:'It is imperative that governments take immediate action on climate change.', category:'Opinion' },
+  { id:'v11', word:'autonomous', meaning:'自主的/獨立的', example:'Young adults should strive for autonomous decision-making in their careers.', category:'Description' },
+  { id:'v12', word:'resilience', meaning:'復原力/適應力', example:'Building resilience in children helps them overcome adversity effectively.', category:'Trait' },
+  { id:'v13', word:'synthesis', meaning:'綜合/合成', example:'The synthesis of traditional and modern approaches yields optimal results.', category:'Academic' },
+  { id:'v14', word:'correlate', meaning:'相關聯', example:'Studies correlate regular exercise with improved cognitive function.', category:'Academic' },
+  { id:'v15', word:'pragmatic', meaning:'務實的/實用的', example:'A pragmatic approach to education balances theory with practical skills.', category:'Opinion' },
+  { id:'v16', word:'innovative', meaning:'創新的', example:'Innovative technology has revolutionized healthcare delivery.', category:'Description' },
 ];
 
-let SKELETON_DATA = [
-  { id:'s1', component:'skeleton', topic:'', content:'Some people believe that universities should focus on providing academic skills, while others think they should prepare students for employment. Discuss both views and give your own opinion.', detail:'', extra:'' },
+const SKELETON_DATA = [
+  { id:'s1', question:'Some people believe that universities should focus on providing academic skills, while others think they should prepare students for employment. Discuss both views and give your own opinion.' },
+  { id:'s2', question:'In many countries, the amount of household waste is increasing. What are the causes of this? What solutions can be proposed?' },
+  { id:'s3', question:'Some experts believe that it is better for children to begin learning a foreign language at primary school rather than secondary school. Do the advantages of this outweigh the disadvantages?' },
+  { id:'s4', question:'The growth of online shopping will one day lead to the closure of all physical stores. To what extent do you agree or disagree?' },
+  { id:'s5', question:'Some people argue that museums should be free for everyone. Others believe that entry fees are necessary. Discuss both views and give your own opinion.' },
+  { id:'s6', question:'Nowadays, people spend more time on their careers than on their families. What are the causes and effects of this trend?' },
+  { id:'s7', question:'It is important to spend time on hobbies and relaxation. Do you agree or disagree?' },
+  { id:'s8', question:'Some believe that technological development has made people\'s lives more complicated, not easier. Discuss this view and give your own opinion.' },
 ];
 
-let PART1_DATA = [
-  { id:'sp1', component:'part1', topic:'Work/Study', content:'Do you work or are you a student?', detail:'', extra:'' },
+const PART1_DATA = [
+  { id:'sp1', q:'Do you work or are you a student?', topic:'Work/Study' },
+  { id:'sp2', q:'What do you enjoy most about your hometown?', topic:'Hometown' },
+  { id:'sp3', q:'How often do you use social media?', topic:'Technology' },
+  { id:'sp4', q:'Do you prefer reading books or watching movies?', topic:'Entertainment' },
+  { id:'sp5', q:'What kind of food do you like to eat?', topic:'Food' },
+  { id:'sp6', q:'How do you usually spend your weekends?', topic:'Leisure' },
+  { id:'sp7', q:'Do you think it is important to learn a foreign language?', topic:'Language' },
+  { id:'sp8', q:'What type of transport do you use most often?', topic:'Transport' },
+  { id:'sp9', q:'What is your favourite season and why?', topic:'Weather/Nature' },
+  { id:'sp10', q:'Do you prefer living in a city or countryside?', topic:'Lifestyle' },
+  { id:'sp11', q:'Tell me about a hobby you enjoy.', topic:'Hobbies' },
+  { id:'sp12', q:'What is your favourite colour and why?', topic:'Preferences' },
 ];
 
-let PART2_DATA = [
-  { id:'sp2a', component:'part2', topic:'A Book', content:'Describe a book you have recently read.\n\nYou should say:\n- what the book was about\n- why you decided to read it\n- how long it took you to read it\n\nand explain whether you would recommend it to others.', detail:'', extra:'' },
+const PART2_DATA = [
+  { id:'sp2a', card:'Describe a book you have recently read.\n\nYou should say:\n- what the book was about\n- why you decided to read it\n- how long it took you to read it\n\nand explain whether you would recommend it to others.' },
+  { id:'sp2b', card:'Describe a time when you helped someone.\n\nYou should say:\n- who you helped\n- how you helped them\n- why you helped them\n\nand explain how you felt about helping.' },
+  { id:'sp2c', card:'Describe a place you have visited that you particularly liked.\n\nYou should say:\n- where it was\n- when you went there\n- what you did there\n\nand explain why you liked it so much.' },
+  { id:'sp2d', card:'Describe a meaningful skill you have learned.\n\nYou should say:\n- what skill it is\n- how you learned it\n- how often you use it\n\nand explain why it is meaningful to you.' },
+  { id:'sp2e', card:'Describe a memorable conversation you had.\n\nYou should say:\n- who you talked with\n- what you discussed\n- when and where it happened\n\nand explain why it was memorable.' },
+  { id:'sp2f', card:'Describe a goal you want to achieve in the future.\n\nYou should say:\n- what goal it is\n- why you want to achieve it\n- how you plan to achieve it\n\nand explain what would you need to do to succeed.' },
 ];
 
-let PART3_DATA = [
-  { id:'sp3a', component:'part3', topic:'Media & Entertainment', content:'Why do you think some people prefer to read books rather than watch movies?', detail:'', extra:'' },
+const PART3_DATA = [
+  { id:'sp3a', q:'Why do you think some people prefer to read books rather than watch movies?', topic:'Media & Entertainment' },
+  { id:'sp3b', q:'How has technology changed the way people work?', topic:'Technology & Work' },
+  { id:'sp3c', q:'Do you think governments should invest more in public transportation?', topic:'Transport & Society' },
+  { id:'sp3d', q:'What are the main benefits of volunteering for young people?', topic:'Community' },
+  { id:'sp3e', q:'In what ways can education help develop critical thinking skills?', topic:'Education' },
+  { id:'sp3f', q:'How do you think social media has affected people\'s relationships?', topic:'Social Media & Relations' },
+  { id:'sp3g', q:'What role does exercise play in maintaining a healthy lifestyle?', topic:'Health & Wellness' },
+  { id:'sp3h', q:'Do you believe that learning a foreign language should be compulsory in schools?', topic:'Language & Education' },
 ];
 
 // ========== TOAST ==========
@@ -429,7 +534,7 @@ function showModule(mod) {
   showScreen(mod);
 }
 
-// ========== DATA SDK ==========
+// ========== DATA HANDLING ==========
 const dataHandler = {
   onDataChanged(data) {
     allData = data;
@@ -440,7 +545,7 @@ const dataHandler = {
       if (d.type === 'custom_question' && d.user === currentUser && d.custom_data) {
         try {
           const parsed = JSON.parse(d.custom_data);
-          const comp = d.component; // paraphrase, grammar, part1, part3
+          const comp = d.component; 
           if (customQuestions[comp]) customQuestions[comp].push(parsed);
         } catch(e) {}
       }
@@ -460,10 +565,6 @@ function getRecord(type, component, questionId) {
 }
 
 async function saveAnswer(component, questionId, answer, category, starred, tags, notes) {
-  // POST to Google Sheets
-  const payload = { user: currentUser, component: component, question_id: questionId, user_answer: answer, starred: starred || false, notes: notes || '', score: 0 };
-  try { fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) }); } catch(e) {}
-
   const existing = getRecord('answer', component, questionId);
   if (existing) {
     const updated = { ...existing, user_answer: answer, starred: starred || existing.starred, tags: tags || existing.tags, notes: notes || existing.notes, timestamp: new Date().toISOString() };
@@ -471,7 +572,6 @@ async function saveAnswer(component, questionId, answer, category, starred, tags
     if (r.isOk) showToast('已更新 ✓');
     return r;
   } else {
-    if (allData.length >= 999) { showToast('已達儲存上限 (999)'); return; }
     const r = await window.dataSdk.create({ type: 'answer', user: currentUser, category, component, question_id: questionId, user_answer: answer, starred: starred || false, tags: tags || '', notes: notes || '', timestamp: new Date().toISOString(), score: 0 });
     if (r.isOk) showToast('已儲存 ✓');
     return r;
@@ -480,17 +580,10 @@ async function saveAnswer(component, questionId, answer, category, starred, tags
 
 async function toggleStar(component, questionId, category) {
   const existing = getRecord('answer', component, questionId);
-  const isNowStarred = existing ? !existing.starred : true;
-  
-  // POST to Google Sheets
-  const payload = { user: currentUser, component: component, question_id: questionId, user_answer: existing ? existing.user_answer : '', starred: isNowStarred, notes: existing ? existing.notes : '', score: 0 };
-  try { fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) }); } catch(e) {}
-
   if (existing) {
-    const r = await window.dataSdk.update({ ...existing, starred: isNowStarred });
-    if (r.isOk) showToast(isNowStarred ? '已收藏 ⭐' : '已取消收藏');
+    const r = await window.dataSdk.update({ ...existing, starred: !existing.starred });
+    if (r.isOk) showToast(existing.starred ? '已取消收藏' : '已收藏 ⭐');
   } else {
-    if (allData.length >= 999) { showToast('已達儲存上限 (999)'); return; }
     const r = await window.dataSdk.create({ type: 'answer', user: currentUser, category, component, question_id: questionId, user_answer: '', starred: true, tags: '', notes: '', timestamp: new Date().toISOString(), score: 0 });
     if (r.isOk) showToast('已收藏 ⭐');
   }
@@ -502,7 +595,6 @@ async function saveSession() {
   if (existing) {
     await window.dataSdk.update({ ...existing, timestamp: now });
   } else {
-    if (allData.length >= 999) return;
     await window.dataSdk.create({ type: 'session', user: currentUser, category: '', component: '', question_id: '', user_answer: '', starred: false, tags: '', notes: '', timestamp: now, score: 0 });
   }
 }
@@ -518,7 +610,6 @@ function updateDashStats() {
   if (el('stat-total')) el('stat-total').textContent = answers.length;
   if (el('stat-starred')) el('stat-starred').textContent = starred.length;
 
-  // Simple streak: count unique days
   const days = new Set(answers.map(a => a.timestamp ? a.timestamp.split('T')[0] : ''));
   if (el('stat-streak')) el('stat-streak').textContent = days.size;
 
@@ -536,7 +627,6 @@ document.getElementById('btn-login').addEventListener('click', async (e) => {
   currentUser = name;
   document.getElementById('dash-username').textContent = name;
 
-  // Check for last session
   const session = allData.find(d => d.user === name && d.type === 'session');
   if (session) {
     const d = new Date(session.timestamp);
@@ -564,14 +654,11 @@ function openWritingComponent(comp) {
 
 // Paraphrase
 let currentParaphraseIdx = 0;
-let paraphraseViewMode = 'detail'; // detail or table
+let paraphraseViewMode = 'detail'; 
 function renderParaphrase() {
   const container = document.getElementById('paraphrase-content');
-  
-  // Combine built-in + custom questions
   const allParaphrases = [...PARAPHRASE_DATA, ...(customQuestions.paraphrase || [])];
   
-  // View toggle
   let toggleHTML = `
     <div class="flex gap-2 mb-4 justify-end">
       <button onclick="paraphraseViewMode='detail';renderParaphrase()" class="px-3 py-1.5 rounded-lg text-sm font-medium ${paraphraseViewMode==='detail'?'bg-accent text-white':'bg-gray-100 text-muted'}">📝 逐題</button>
@@ -581,7 +668,6 @@ function renderParaphrase() {
   container.innerHTML = toggleHTML;
   
   if (paraphraseViewMode === 'detail') {
-    if(allParaphrases.length === 0) { container.innerHTML += "<p>暫時未有題目，請去題庫新增！</p>"; return; }
     const item = allParaphrases[currentParaphraseIdx];
     const saved = getRecord('answer', 'paraphrase', item.id);
     const isStarred = saved && saved.starred;
@@ -595,8 +681,8 @@ function renderParaphrase() {
       </div>
       <div class="bg-surface rounded-xl p-4 mb-4 shadow-sm border-l-4 border-violet-400">
         <p class="text-xs text-muted mb-1 font-medium uppercase tracking-wide">Band 6.0 原句</p>
-        <p class="text-base font-medium leading-relaxed">${item.content}</p>
-        <p class="text-xs text-violet-500 mt-2 italic">💡 ${item.detail}</p>
+        <p class="text-base font-medium leading-relaxed">${item.original}</p>
+        <p class="text-xs text-violet-500 mt-2 italic">💡 ${item.hint}</p>
       </div>
       <div class="mb-3">
         <label class="block text-sm font-medium mb-1">你嘅 Band 7.5+ 改寫</label>
@@ -608,7 +694,7 @@ function renderParaphrase() {
       </div>
       <div id="para-sample-${item.id}" class="hidden bg-emerald-50 rounded-xl p-4 mb-4 border-l-4 border-emerald-400">
         <p class="text-xs text-emerald-700 font-medium mb-1">✨ 參考改寫</p>
-        <p class="text-sm text-emerald-900 leading-relaxed">${item.extra || '自訂題目'}</p>
+        <p class="text-sm text-emerald-900 leading-relaxed">${item.sample || '自訂題目'}</p>
       </div>
       <div class="flex gap-2">
         <button onclick="prevParaphrase()" class="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-medium hover:bg-gray-50 transition ${currentParaphraseIdx === 0 ? 'opacity-30 pointer-events-none':''}">← 上一題</button>
@@ -616,7 +702,6 @@ function renderParaphrase() {
       </div>
     `;
   } else {
-    // Table view
     let html = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-gray-200"><th class="text-left p-2 font-semibold">原句</th><th class="text-left p-2 font-semibold">你嘅改寫</th><th class="text-center p-2 font-semibold">操作</th></tr></thead><tbody>';
     allParaphrases.forEach((item, idx) => {
       const saved = getRecord('answer', 'paraphrase', item.id);
@@ -624,7 +709,7 @@ function renderParaphrase() {
       const isCustom = item.id && item.id.startsWith('custom_');
       html += `
         <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onclick="currentParaphraseIdx=${idx};paraphraseViewMode='detail';renderParaphrase()">
-          <td class="p-2 text-xs leading-relaxed">${item.content.substring(0, 50)}...</td>
+          <td class="p-2 text-xs leading-relaxed">${item.original.substring(0, 50)}...</td>
           <td class="p-2 text-xs text-muted">${saved?.user_answer ? saved.user_answer.substring(0, 40) + '...' : '❌ 未完成'}</td>
           <td class="p-2 text-center">
             <button onclick="event.stopPropagation();toggleStar('paraphrase','${item.id}','writing').then(()=>setTimeout(renderParaphrase,500))" class="p-1 hover:bg-gray-200 rounded">
@@ -657,7 +742,7 @@ function prevParaphrase() { if (currentParaphraseIdx > 0) { currentParaphraseIdx
 
 // Grammar
 let currentGrammarIdx = 0;
-let grammarViewMode = 'detail'; // detail or table
+let grammarViewMode = 'detail'; 
 function renderGrammar() {
   const container = document.getElementById('grammar-content');
   const allGrammar = [...GRAMMAR_DATA, ...(customQuestions.grammar || [])];
@@ -671,7 +756,6 @@ function renderGrammar() {
   container.innerHTML = toggleHTML;
   
   if (grammarViewMode === 'detail') {
-    if(allGrammar.length === 0) { container.innerHTML += "<p>暫時未有題目，請去題庫新增！</p>"; return; }
     const item = allGrammar[currentGrammarIdx];
     const saved = getRecord('answer', 'grammar', item.id);
     const isStarred = saved && saved.starred;
@@ -685,14 +769,14 @@ function renderGrammar() {
       </div>
       <div class="bg-surface rounded-xl p-4 mb-4 shadow-sm">
         <h3 class="font-semibold text-lg mb-2 text-blue-700">${item.topic}</h3>
-        <p class="text-sm text-muted mb-3 leading-relaxed">${item.content}</p>
+        <p class="text-sm text-muted mb-3 leading-relaxed">${item.rule}</p>
         <div class="bg-blue-50 rounded-lg p-3 mb-3">
           <p class="text-xs text-blue-600 font-medium mb-1">📖 例句</p>
-          <p class="text-sm italic leading-relaxed">${item.detail}</p>
+          <p class="text-sm italic leading-relaxed">${item.example}</p>
         </div>
         <div class="bg-amber-50 rounded-lg p-3">
           <p class="text-xs text-amber-700 font-medium mb-1">✏️ 練習</p>
-          <p class="text-sm leading-relaxed">${item.extra}</p>
+          <p class="text-sm leading-relaxed">${item.practice}</p>
         </div>
       </div>
       <div class="mb-3">
@@ -735,11 +819,12 @@ async function saveGrammarAnswer(id) {
   if (!answer) { showToast('請先輸入答案'); return; }
   await saveAnswer('grammar', id, answer, 'writing');
 }
+
 function nextGrammar() { const all = [...GRAMMAR_DATA, ...(customQuestions.grammar || [])]; if (currentGrammarIdx < all.length - 1) { currentGrammarIdx++; renderGrammar(); } }
 function prevGrammar() { if (currentGrammarIdx > 0) { currentGrammarIdx--; renderGrammar(); } }
 
 // Vocab
-let vocabViewMode = 'detail'; // detail or table
+let vocabViewMode = 'detail';
 function renderVocab() {
   const container = document.getElementById('vocab-content');
   const customVocabs = getUserData().filter(d => d.component === 'vocab_custom');
@@ -761,15 +846,15 @@ function renderVocab() {
         <div class="bg-surface rounded-xl p-4 shadow-sm">
           <div class="flex items-start justify-between">
             <div class="flex-1">
-              <span class="tag-pill bg-emerald-100 text-emerald-700 mb-2">${item.topic}</span>
-              <h4 class="font-semibold text-lg mt-1">${item.content}</h4>
-              <p class="text-sm text-muted">${item.detail}</p>
+              <span class="tag-pill bg-emerald-100 text-emerald-700 mb-2">${item.category}</span>
+              <h4 class="font-semibold text-lg mt-1">${item.word}</h4>
+              <p class="text-sm text-muted">${item.meaning}</p>
             </div>
             <button onclick="toggleStar('vocab','${item.id}','writing').then(()=>setTimeout(renderVocab,500))" class="p-1.5 rounded-lg hover:bg-gray-100 transition flex-shrink-0">
               <i data-lucide="star" class="w-5 h-5 ${isStarred ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}"></i>
             </button>
           </div>
-          <p class="text-xs text-muted mt-2 italic leading-relaxed">"${item.extra}"</p>
+          <p class="text-xs text-muted mt-2 italic leading-relaxed">"${item.example}"</p>
         </div>
       `;
     });
@@ -804,7 +889,7 @@ function renderVocab() {
   } else {
     let allVocabs = VOCAB_DATA.map(v => ({ ...v, isCustom: false }));
     customVocabs.forEach(cv => {
-      allVocabs.push({ id: cv.__backendId, content: cv.question_id, detail: cv.user_answer, extra: cv.notes || '', topic: '自訂', isCustom: true, __backendId: cv.__backendId, starred: cv.starred });
+      allVocabs.push({ id: cv.__backendId, word: cv.question_id, meaning: cv.user_answer, example: cv.notes || '', category: '自訂', isCustom: true, __backendId: cv.__backendId, starred: cv.starred });
     });
     
     let html = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-gray-200"><th class="text-left p-2 font-semibold">詞彙</th><th class="text-left p-2 font-semibold">意思</th><th class="text-left p-2 font-semibold">分類</th><th class="text-center p-2 font-semibold">操作</th></tr></thead><tbody>';
@@ -813,9 +898,9 @@ function renderVocab() {
       const isStarred = saved?.starred || v.starred || false;
       html += `
         <tr class="border-b border-gray-100 hover:bg-gray-50">
-          <td class="p-2 font-medium">${v.content}</td>
-          <td class="p-2 text-muted text-xs">${v.detail}</td>
-          <td class="p-2"><span class="tag-pill bg-gray-100 text-gray-700">${v.topic}</span></td>
+          <td class="p-2 font-medium">${v.word}</td>
+          <td class="p-2 text-muted text-xs">${v.meaning}</td>
+          <td class="p-2"><span class="tag-pill bg-gray-100 text-gray-700">${v.category}</span></td>
           <td class="p-2 text-center flex gap-1 justify-center">
             <button onclick="toggleStar('${v.isCustom?'vocab_custom':'vocab'}','${v.id}','writing').then(()=>setTimeout(renderVocab,500))" class="p-1 hover:bg-gray-200 rounded">
               <i data-lucide="star" class="w-4 h-4 ${isStarred ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}"></i>
@@ -879,12 +964,7 @@ async function saveCustomVocab() {
       }
     }
   } else {
-    if (allData.length >= 999) { showToast('已達儲存上限 (999)'); return; }
     const r = await window.dataSdk.create({ type: 'answer', user: currentUser, category: 'writing', component: 'vocab_custom', question_id: word, user_answer: meaning, starred: false, tags: 'custom', notes: example, timestamp: new Date().toISOString(), score: 0 });
-    
-    // POST to Google Sheets
-    try { fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ user: currentUser, component: 'vocab_custom', question_id: word, user_answer: meaning, starred: false, notes: example, score: 0 }) }); } catch(e) {}
-
     if (r.isOk) {
       showToast('已新增詞彙 ✓');
       document.getElementById('vocab-word-input').value = '';
@@ -898,9 +978,10 @@ async function saveCustomVocab() {
 
 // Skeleton Builder
 let currentSkeletonIdx = 0;
-let skeletonViewMode = 'detail';
+let skeletonViewMode = 'detail'; 
 function renderSkeleton() {
   const container = document.getElementById('skeleton-content');
+  
   let toggleHTML = `
     <div class="flex gap-2 mb-4 justify-end">
       <button onclick="skeletonViewMode='detail';renderSkeleton()" class="px-3 py-1.5 rounded-lg text-sm font-medium ${skeletonViewMode==='detail'?'bg-accent text-white':'bg-gray-100 text-muted'}">📝 逐題</button>
@@ -910,7 +991,6 @@ function renderSkeleton() {
   container.innerHTML = toggleHTML;
   
   if (skeletonViewMode === 'detail') {
-    if(SKELETON_DATA.length === 0) { container.innerHTML += "<p>暫時未有題目，請去題庫新增！</p>"; return; }
     const item = SKELETON_DATA[currentSkeletonIdx];
     const saved = getRecord('answer', 'skeleton', item.id);
     const isStarred = saved && saved.starred;
@@ -928,7 +1008,7 @@ function renderSkeleton() {
       </div>
       <div class="bg-surface rounded-xl p-4 mb-4 shadow-sm border-l-4 border-rose-400">
         <p class="text-xs text-muted font-medium mb-1">📋 Task 2 題目</p>
-        <p class="text-sm leading-relaxed">${item.content}</p>
+        <p class="text-sm leading-relaxed">${item.question}</p>
       </div>
       <div class="space-y-3 mb-4">
         <div>
@@ -959,7 +1039,7 @@ function renderSkeleton() {
       if (saved && saved.user_answer) { try { thesis = JSON.parse(saved.user_answer).thesis || ''; } catch(e) {} }
       html += `
         <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onclick="currentSkeletonIdx=${idx};skeletonViewMode='detail';renderSkeleton()">
-          <td class="p-2 text-xs leading-relaxed">${item.content.substring(0, 40)}...</td>
+          <td class="p-2 text-xs leading-relaxed">${item.question.substring(0, 40)}...</td>
           <td class="p-2 text-xs text-muted">${thesis ? thesis.substring(0, 35) + '...' : '❌ 未完成'}</td>
           <td class="p-2 text-center">
             <button onclick="event.stopPropagation();toggleStar('skeleton','${item.id}','writing').then(()=>setTimeout(renderSkeleton,500))" class="p-1 hover:bg-gray-200 rounded">
@@ -983,6 +1063,7 @@ async function saveSkeleton(id) {
   const answer = JSON.stringify({ thesis, tp1, tp2 });
   await saveAnswer('skeleton', id, answer, 'writing');
 }
+
 function nextSkeleton() { if (currentSkeletonIdx < SKELETON_DATA.length - 1) { currentSkeletonIdx++; renderSkeleton(); } }
 function prevSkeleton() { if (currentSkeletonIdx > 0) { currentSkeletonIdx--; renderSkeleton(); } }
 
@@ -998,7 +1079,6 @@ function openSpeakingComponent(comp) {
 let currentPart1Idx = 0;
 function renderPart1() {
   const allPart1 = [...PART1_DATA, ...(customQuestions.part1 || [])];
-  if(allPart1.length === 0) return;
   const container = document.getElementById('part1-content');
   const item = allPart1[currentPart1Idx];
   const saved = getRecord('answer', 'part1', item.id);
@@ -1013,7 +1093,7 @@ function renderPart1() {
     </div>
     <div class="bg-surface rounded-xl p-5 mb-4 shadow-sm text-center">
       <i data-lucide="message-circle" class="w-8 h-8 text-amber-500 mx-auto mb-3"></i>
-      <p class="text-lg font-medium leading-relaxed">"${item.content}"</p>
+      <p class="text-lg font-medium leading-relaxed">"${item.q}"</p>
     </div>
     <div class="mb-3">
       <label class="block text-sm font-medium mb-1">你嘅回答 (寫低練習)</label>
@@ -1032,6 +1112,7 @@ async function savePart1(id) {
   if (!answer) { showToast('請先輸入答案'); return; }
   await saveAnswer('part1', id, answer, 'speaking');
 }
+
 function randomPart1() {
   const allPart1 = [...PART1_DATA, ...(customQuestions.part1 || [])];
   let idx;
@@ -1049,13 +1130,12 @@ function renderPart2() {
   speakSeconds = 120;
   part2Phase = 'prep';
   const container = document.getElementById('part2-content');
-  if(PART2_DATA.length === 0) return;
   const item = PART2_DATA[currentPart2Idx];
 
   container.innerHTML = `
     <div class="bg-surface rounded-xl p-4 mb-4 shadow-sm border-l-4 border-orange-400">
-      <p class="text-xs text-muted font-medium mb-2">🎤 Cue Card (${item.topic})</p>
-      <p class="text-sm leading-relaxed whitespace-pre-line">${item.content}</p>
+      <p class="text-xs text-muted font-medium mb-2">🎤 Cue Card</p>
+      <p class="text-sm leading-relaxed whitespace-pre-line">${item.card}</p>
     </div>
     <div id="p2-timer-area">
       <div class="text-center mb-4">
@@ -1108,24 +1188,28 @@ function startPart2Timer() {
     }
   }, 1000);
 }
+
 function startSpeakTimer() {
   speakTimer = setInterval(() => {
     speakSeconds--;
     document.getElementById('p2-speak-display').textContent = speakSeconds;
-    if (speakSeconds <= 0) { clearInterval(speakTimer); showToast('時間到！'); }
+    if (speakSeconds <= 0) {
+      clearInterval(speakTimer);
+      showToast('時間到！');
+    }
   }, 1000);
 }
+
 async function savePart2(id) {
   const notes = document.getElementById('p2-locked-notes').textContent;
   const reflection = document.getElementById('p2-reflection').value.trim();
   await saveAnswer('part2', id, reflection, 'speaking', false, '', notes);
 }
 
-// Part 3 - PEEL
+// Part 3
 let currentPart3Idx = 0;
 function renderPart3() {
   const allPart3 = [...PART3_DATA, ...(customQuestions.part3 || [])];
-  if(allPart3.length === 0) return;
   const container = document.getElementById('part3-content');
   const item = allPart3[currentPart3Idx];
   const saved = getRecord('answer', 'part3', item.id);
@@ -1141,7 +1225,7 @@ function renderPart3() {
       </button>
     </div>
     <div class="bg-surface rounded-xl p-4 mb-4 shadow-sm border-l-4 border-red-400">
-      <p class="text-lg font-medium leading-relaxed">"${item.content}"</p>
+      <p class="text-lg font-medium leading-relaxed">"${item.q}"</p>
     </div>
     <div class="space-y-3 mb-4">
       <div class="bg-indigo-50 rounded-xl p-3">
@@ -1169,11 +1253,18 @@ function renderPart3() {
   `;
   lucide.createIcons();
 }
+
 async function savePart3(id) {
-  const peel = { point: document.getElementById('peel-p').value.trim(), evidence: document.getElementById('peel-e1').value.trim(), explanation: document.getElementById('peel-e2').value.trim(), link: document.getElementById('peel-l').value.trim() };
+  const peel = {
+    point: document.getElementById('peel-p').value.trim(),
+    evidence: document.getElementById('peel-e1').value.trim(),
+    explanation: document.getElementById('peel-e2').value.trim(),
+    link: document.getElementById('peel-l').value.trim()
+  };
   if (!peel.point) { showToast('請至少寫 Point'); return; }
   await saveAnswer('part3', id, JSON.stringify(peel), 'speaking');
 }
+
 function nextPart3() { const all = [...PART3_DATA, ...(customQuestions.part3 || [])]; if (currentPart3Idx < all.length - 1) { currentPart3Idx++; renderPart3(); } }
 function prevPart3() { if (currentPart3Idx > 0) { currentPart3Idx--; renderPart3(); } }
 
@@ -1181,9 +1272,13 @@ function prevPart3() { if (currentPart3Idx > 0) { currentPart3Idx--; renderPart3
 let reviewEditingId = null;
 let reviewEditingType = null;
 let selectedReviewItems = new Set();
-let reviewSortBy = 'newest';
+let reviewSortBy = 'newest'; 
 
-document.getElementById('btn-review-nav').addEventListener('click', () => { showScreen('review'); selectedReviewItems.clear(); renderReview(); });
+document.getElementById('btn-review-nav').addEventListener('click', () => {
+  showScreen('review');
+  selectedReviewItems.clear();
+  renderReview();
+});
 
 function filterReview(filter) {
   currentReviewFilter = filter;
@@ -1194,8 +1289,18 @@ function filterReview(filter) {
   });
   renderReview();
 }
-function sortReview(sortType) { reviewSortBy = sortType; selectedReviewItems.clear(); renderReview(); }
-function toggleReviewSelect(id) { if (selectedReviewItems.has(id)) selectedReviewItems.delete(id); else selectedReviewItems.add(id); renderReview(); }
+
+function sortReview(sortType) {
+  reviewSortBy = sortType;
+  selectedReviewItems.clear();
+  renderReview();
+}
+
+function toggleReviewSelect(id) {
+  if (selectedReviewItems.has(id)) selectedReviewItems.delete(id);
+  else selectedReviewItems.add(id);
+  renderReview();
+}
 
 async function batchDeleteSelected() {
   if (selectedReviewItems.size === 0) return;
@@ -1231,7 +1336,12 @@ function renderReview() {
   else if (currentReviewFilter === 'skeleton') items = items.filter(d => d.component === 'skeleton');
   else if (currentReviewFilter === 'speaking') items = items.filter(d => ['part1','part2','part3'].includes(d.component));
 
-  if (items.length === 0) { container.innerHTML = ''; emptyEl.classList.remove('hidden'); lucide.createIcons(); return; }
+  if (items.length === 0) {
+    container.innerHTML = '';
+    emptyEl.classList.remove('hidden');
+    lucide.createIcons();
+    return;
+  }
   emptyEl.classList.add('hidden');
 
   if (reviewSortBy === 'newest') items.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
@@ -1266,17 +1376,19 @@ function renderReview() {
     const isSelected = selectedReviewItems.has(item.__backendId);
 
     let questionText = '';
-    if (item.component === 'paraphrase') { const q = PARAPHRASE_DATA.find(p => p.id === item.question_id); questionText = q ? q.content : ''; }
+    if (item.component === 'paraphrase') { const q = PARAPHRASE_DATA.find(p => p.id === item.question_id); questionText = q ? q.original : ''; }
     else if (item.component === 'grammar') { const q = GRAMMAR_DATA.find(g => g.id === item.question_id); questionText = q ? q.topic : ''; }
-    else if (item.component === 'vocab') { const q = VOCAB_DATA.find(v => v.id === item.question_id); questionText = q ? q.content + ' — ' + q.detail : ''; }
+    else if (item.component === 'vocab') { const q = VOCAB_DATA.find(v => v.id === item.question_id); questionText = q ? q.word + ' — ' + q.meaning : ''; }
     else if (item.component === 'vocab_custom') { questionText = item.question_id + ' — ' + item.user_answer; }
-    else if (item.component === 'skeleton') { const q = SKELETON_DATA.find(s => s.id === item.question_id); questionText = q ? q.content.substring(0, 80) + '...' : ''; }
-    else if (item.component === 'part1') { const q = PART1_DATA.find(p => p.id === item.question_id); questionText = q ? q.content : ''; }
-    else if (item.component === 'part2') { const q = PART2_DATA.find(p => p.id === item.question_id); questionText = q ? q.content.substring(0, 60) + '...' : ''; }
-    else if (item.component === 'part3') { const q = PART3_DATA.find(p => p.id === item.question_id); questionText = q ? q.content : ''; }
+    else if (item.component === 'skeleton') { const q = SKELETON_DATA.find(s => s.id === item.question_id); questionText = q ? q.question.substring(0, 80) + '...' : ''; }
+    else if (item.component === 'part1') { const q = PART1_DATA.find(p => p.id === item.question_id); questionText = q ? q.q : ''; }
+    else if (item.component === 'part2') { const q = PART2_DATA.find(p => p.id === item.question_id); questionText = q ? q.card.substring(0, 60) + '...' : ''; }
+    else if (item.component === 'part3') { const q = PART3_DATA.find(p => p.id === item.question_id); questionText = q ? q.q : ''; }
 
     let answerPreview = item.user_answer || '';
-    if (item.component === 'skeleton' || item.component === 'part3') { try { const parsed = JSON.parse(answerPreview); answerPreview = Object.values(parsed).filter(Boolean).join(' | '); } catch(e) {} }
+    if (item.component === 'skeleton' || item.component === 'part3') {
+      try { const parsed = JSON.parse(answerPreview); answerPreview = Object.values(parsed).filter(Boolean).join(' | '); } catch(e) {}
+    }
 
     html += `
       <div class="bg-surface rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition border-l-4 ${isSelected ? 'border-accent bg-indigo-50' : 'border-transparent'}" onclick="openReviewDetail('${item.__backendId}')">
@@ -1294,6 +1406,7 @@ function renderReview() {
     `;
   });
   html += '</div>';
+
   container.innerHTML = html;
   lucide.createIcons();
 }
@@ -1305,14 +1418,14 @@ function openReviewDetail(id) {
   reviewEditingType = item.component;
 
   let fullQuestion = '';
-  if (item.component === 'paraphrase') { const q = PARAPHRASE_DATA.find(p => p.id === item.question_id); fullQuestion = q ? q.content : ''; }
-  else if (item.component === 'grammar') { const q = GRAMMAR_DATA.find(g => g.id === item.question_id); fullQuestion = q ? `${q.topic}: ${q.content}` : ''; }
-  else if (item.component === 'vocab') { const q = VOCAB_DATA.find(v => v.id === item.question_id); fullQuestion = q ? `${q.content} — ${q.detail}\n"${q.extra}"` : ''; }
+  if (item.component === 'paraphrase') { const q = PARAPHRASE_DATA.find(p => p.id === item.question_id); fullQuestion = q ? q.original : ''; }
+  else if (item.component === 'grammar') { const q = GRAMMAR_DATA.find(g => g.id === item.question_id); fullQuestion = q ? `${q.topic}: ${q.rule}` : ''; }
+  else if (item.component === 'vocab') { const q = VOCAB_DATA.find(v => v.id === item.question_id); fullQuestion = q ? `${q.word} — ${q.meaning}\n"${q.example}"` : ''; }
   else if (item.component === 'vocab_custom') { fullQuestion = `${item.question_id} — ${item.user_answer}\n${item.notes || ''}`; }
-  else if (item.component === 'skeleton') { const q = SKELETON_DATA.find(s => s.id === item.question_id); fullQuestion = q ? q.content : ''; }
-  else if (item.component === 'part1') { const q = PART1_DATA.find(p => p.id === item.question_id); fullQuestion = q ? q.content : ''; }
-  else if (item.component === 'part2') { const q = PART2_DATA.find(p => p.id === item.question_id); fullQuestion = q ? q.content : ''; }
-  else if (item.component === 'part3') { const q = PART3_DATA.find(p => p.id === item.question_id); fullQuestion = q ? q.content : ''; }
+  else if (item.component === 'skeleton') { const q = SKELETON_DATA.find(s => s.id === item.question_id); fullQuestion = q ? q.question : ''; }
+  else if (item.component === 'part1') { const q = PART1_DATA.find(p => p.id === item.question_id); fullQuestion = q ? q.q : ''; }
+  else if (item.component === 'part2') { const q = PART2_DATA.find(p => p.id === item.question_id); fullQuestion = q ? q.card : ''; }
+  else if (item.component === 'part3') { const q = PART3_DATA.find(p => p.id === item.question_id); fullQuestion = q ? q.q : ''; }
 
   let detailHtml = `
     <div class="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-4" onclick="if(event.target===this)closeReviewDetail()">
@@ -1321,20 +1434,24 @@ function openReviewDetail(id) {
           <h3 class="font-semibold">📚 溫習詳細</h3>
           <button onclick="closeReviewDetail()" class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
+        
         <div class="bg-gray-50 rounded-xl p-3 mb-4">
           <p class="text-xs text-muted font-medium mb-1">📌 題目</p>
           <p class="text-sm leading-relaxed whitespace-pre-line">${fullQuestion}</p>
         </div>
+
         <div class="bg-blue-50 rounded-xl p-3 mb-4">
           <p class="text-xs text-blue-700 font-medium mb-1">✏️ 你嘅回答</p>
           <textarea id="review-edit-answer" rows="4" class="w-full px-3 py-2 rounded-lg border border-blue-200 bg-white text-sm resize-none font-medium">${item.user_answer || ''}</textarea>
         </div>
+
         ${item.notes ? `
           <div class="bg-amber-50 rounded-xl p-3 mb-4">
             <p class="text-xs text-amber-700 font-medium mb-1">📝 備註</p>
             <p class="text-sm whitespace-pre-line">${item.notes}</p>
           </div>
         ` : ''}
+
         <div class="grid grid-cols-3 gap-2 mb-4">
           <button onclick="saveEditedAnswer('${id}')" class="py-2 rounded-lg bg-accent text-white text-xs font-medium hover:bg-indigo-600 transition">💾 保存</button>
           <button onclick="toggleStar('${item.component}','${item.question_id}','${item.category}').then(()=>setTimeout(()=>{renderReview();}, 500))" class="${item.starred ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-muted'} py-2 rounded-lg text-xs font-medium transition">
@@ -1345,49 +1462,138 @@ function openReviewDetail(id) {
       </div>
     </div>
   `;
+
   let modalEl = document.getElementById('review-modal');
-  if (!modalEl) { modalEl = document.createElement('div'); modalEl.id = 'review-modal'; document.body.appendChild(modalEl); }
+  if (!modalEl) {
+    modalEl = document.createElement('div');
+    modalEl.id = 'review-modal';
+    document.body.appendChild(modalEl);
+  }
   modalEl.innerHTML = detailHtml;
   lucide.createIcons();
 }
-function closeReviewDetail() { const modal = document.getElementById('review-modal'); if (modal) modal.remove(); reviewEditingId = null; reviewEditingType = null; }
+
+function closeReviewDetail() {
+  const modal = document.getElementById('review-modal');
+  if (modal) modal.remove();
+  reviewEditingId = null;
+  reviewEditingType = null;
+}
+
 async function saveEditedAnswer(id) {
   const item = allData.find(d => d.__backendId === id);
   if (!item) return;
+  
   const newAnswer = document.getElementById('review-edit-answer').value;
   const r = await window.dataSdk.update({ ...item, user_answer: newAnswer });
-  if (r.isOk) { showToast('已保存 ✓'); closeReviewDetail(); renderReview(); }
+  if (r.isOk) {
+    showToast('已保存 ✓');
+    closeReviewDetail();
+    renderReview();
+  }
 }
+
 async function deleteReviewAnswer(id) {
   const item = allData.find(d => d.__backendId === id);
   if (!item) return;
   const r = await window.dataSdk.delete(item);
-  if (r.isOk) { showToast('已刪除 ✓'); renderReview(); }
+  if (r.isOk) {
+    showToast('已刪除 ✓');
+    renderReview();
+  }
 }
 
 // ========== MANAGE FUNCTIONS ==========
-function showManagePanel(comp) { managingComponent = comp; showScreen('manage-detail'); renderManageDetail(); updateManageCounts(); }
+function showManagePanel(comp) {
+  managingComponent = comp;
+  showScreen('manage-detail');
+  renderManageDetail();
+  updateManageCounts();
+}
+
 function updateManageCounts() {
   document.getElementById('count-para').textContent = PARAPHRASE_DATA.length + (customQuestions.paraphrase?.length || 0);
   document.getElementById('count-gram').textContent = GRAMMAR_DATA.length + (customQuestions.grammar?.length || 0);
   document.getElementById('count-part1').textContent = PART1_DATA.length + (customQuestions.part1?.length || 0);
   document.getElementById('count-part3').textContent = PART3_DATA.length + (customQuestions.part3?.length || 0);
 }
+
 function renderManageDetail() {
   const container = document.getElementById('manage-content');
   const title = document.getElementById('manage-title');
+
   if (managingComponent === 'paraphrase') {
     title.textContent = 'Paraphrasing - 新增/編輯';
-    container.innerHTML = `<div class="space-y-4"><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">原句</label><textarea id="manage-original" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Enter the Band 6.0 sentence..."></textarea></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">提示 Hint</label><input id="manage-hint" type="text" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm" placeholder="e.g., Try: passive voice + academic vocab"></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">參考答案 (可選)</label><textarea id="manage-sample" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Sample paraphrase..."></textarea></div><button onclick="addCustomQuestion('paraphrase')" class="w-full py-3 rounded-xl bg-accent text-white font-medium hover:bg-indigo-600 transition">✅ 新增 Paraphrase 題</button></div>`;
+    container.innerHTML = `
+      <div class="space-y-4">
+        <div class="bg-surface rounded-xl p-4 shadow-sm">
+          <label class="block text-sm font-medium mb-2">原句</label>
+          <textarea id="manage-original" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Enter the Band 6.0 sentence..."></textarea>
+        </div>
+        <div class="bg-surface rounded-xl p-4 shadow-sm">
+          <label class="block text-sm font-medium mb-2">提示 Hint</label>
+          <input id="manage-hint" type="text" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm" placeholder="e.g., Try: passive voice + academic vocab">
+        </div>
+        <div class="bg-surface rounded-xl p-4 shadow-sm">
+          <label class="block text-sm font-medium mb-2">參考答案 (可選)</label>
+          <textarea id="manage-sample" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Sample paraphrase..."></textarea>
+        </div>
+        <button onclick="addCustomQuestion('paraphrase')" class="w-full py-3 rounded-xl bg-accent text-white font-medium hover:bg-indigo-600 transition">✅ 新增 Paraphrase 題</button>
+      </div>
+    `;
   } else if (managingComponent === 'grammar') {
     title.textContent = 'Grammar Focus - 新增/編輯';
-    container.innerHTML = `<div class="space-y-4"><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">句式主題</label><input id="manage-topic" type="text" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm" placeholder="e.g., Cleft Sentences"></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">規則說明</label><textarea id="manage-rule" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Grammar rule..."></textarea></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">例句</label><textarea id="manage-example" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Example sentence..."></textarea></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">練習題</label><textarea id="manage-practice" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Practice question..."></textarea></div><button onclick="addCustomQuestion('grammar')" class="w-full py-3 rounded-xl bg-accent text-white font-medium hover:bg-indigo-600 transition">✅ 新增 Grammar 課</button></div>`;
+    container.innerHTML = `
+      <div class="space-y-4">
+        <div class="bg-surface rounded-xl p-4 shadow-sm">
+          <label class="block text-sm font-medium mb-2">句式主題</label>
+          <input id="manage-topic" type="text" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm" placeholder="e.g., Cleft Sentences">
+        </div>
+        <div class="bg-surface rounded-xl p-4 shadow-sm">
+          <label class="block text-sm font-medium mb-2">規則說明</label>
+          <textarea id="manage-rule" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Grammar rule..."></textarea>
+        </div>
+        <div class="bg-surface rounded-xl p-4 shadow-sm">
+          <label class="block text-sm font-medium mb-2">例句</label>
+          <textarea id="manage-example" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Example sentence..."></textarea>
+        </div>
+        <div class="bg-surface rounded-xl p-4 shadow-sm">
+          <label class="block text-sm font-medium mb-2">練習題</label>
+          <textarea id="manage-practice" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="Practice question..."></textarea>
+        </div>
+        <button onclick="addCustomQuestion('grammar')" class="w-full py-3 rounded-xl bg-accent text-white font-medium hover:bg-indigo-600 transition">✅ 新增 Grammar 課</button>
+      </div>
+    `;
   } else if (managingComponent === 'part1') {
     title.textContent = 'Speaking Part 1 - 新增/編輯';
-    container.innerHTML = `<div class="space-y-4"><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">話題分類</label><input id="manage-topic" type="text" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm" placeholder="e.g., Technology, Lifestyle"></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">問題</label><textarea id="manage-question" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="e.g., Do you prefer online or offline learning?"></textarea></div><button onclick="addCustomQuestion('part1')" class="w-full py-3 rounded-xl bg-accent text-white font-medium hover:bg-indigo-600 transition">✅ 新增 Part 1 題</button></div>`;
+    container.innerHTML = `
+      <div class="space-y-4">
+        <div class="bg-surface rounded-xl p-4 shadow-sm">
+          <label class="block text-sm font-medium mb-2">話題分類</label>
+          <input id="manage-topic" type="text" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm" placeholder="e.g., Technology, Lifestyle">
+        </div>
+        <div class="bg-surface rounded-xl p-4 shadow-sm">
+          <label class="block text-sm font-medium mb-2">問題</label>
+          <textarea id="manage-question" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="e.g., Do you prefer online or offline learning?"></textarea>
+        </div>
+        <button onclick="addCustomQuestion('part1')" class="w-full py-3 rounded-xl bg-accent text-white font-medium hover:bg-indigo-600 transition">✅ 新增 Part 1 題</button>
+      </div>
+    `;
   } else if (managingComponent === 'part3') {
     title.textContent = 'Speaking Part 3 - 新增/編輯';
-    container.innerHTML = `<div class="space-y-4"><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">話題分類</label><input id="manage-topic" type="text" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm" placeholder="e.g., Technology, Environment"></div><div class="bg-surface rounded-xl p-4 shadow-sm"><label class="block text-sm font-medium mb-2">問題</label><textarea id="manage-question" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="e.g., How does artificial intelligence impact society?"></textarea></div><button onclick="addCustomQuestion('part3')" class="w-full py-3 rounded-xl bg-accent text-white font-medium hover:bg-indigo-600 transition">✅ 新增 Part 3 題</button></div>`;
+    container.innerHTML = `
+      <div class="space-y-4">
+        <div class="bg-surface rounded-xl p-4 shadow-sm">
+          <label class="block text-sm font-medium mb-2">話題分類</label>
+          <input id="manage-topic" type="text" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm" placeholder="e.g., Technology, Environment">
+        </div>
+        <div class="bg-surface rounded-xl p-4 shadow-sm">
+          <label class="block text-sm font-medium mb-2">問題</label>
+          <textarea id="manage-question" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-surface text-sm resize-none" placeholder="e.g., How does artificial intelligence impact society?"></textarea>
+        </div>
+        <button onclick="addCustomQuestion('part3')" class="w-full py-3 rounded-xl bg-accent text-white font-medium hover:bg-indigo-600 transition">✅ 新增 Part 3 題</button>
+      </div>
+    `;
   }
   lucide.createIcons();
 }
@@ -1395,33 +1601,47 @@ function renderManageDetail() {
 function addCustomQuestion(comp) {
   const id = 'custom_' + Date.now();
   let newQ;
- 
+
   if (comp === 'paraphrase') {
     const original = document.getElementById('manage-original').value.trim();
     const hint = document.getElementById('manage-hint').value.trim();
     const sample = document.getElementById('manage-sample').value.trim();
     if (!original || !hint) { showToast('請輸入原句同提示'); return; }
-    newQ = { id, content: original, detail: hint, extra: sample };
+    newQ = { id, original, hint, sample };
+    document.getElementById('manage-original').value = '';
+    document.getElementById('manage-hint').value = '';
+    document.getElementById('manage-sample').value = '';
   } else if (comp === 'grammar') {
     const topic = document.getElementById('manage-topic').value.trim();
     const rule = document.getElementById('manage-rule').value.trim();
     const example = document.getElementById('manage-example').value.trim();
     const practice = document.getElementById('manage-practice').value.trim();
     if (!topic || !rule || !example) { showToast('請輸入主題、規則同例句'); return; }
-    newQ = { id, topic, content: rule, detail: example, extra: practice };
-  } else if (comp === 'part1' || comp === 'part3') {
+    newQ = { id, topic, rule, example, practice };
+    document.getElementById('manage-topic').value = '';
+    document.getElementById('manage-rule').value = '';
+    document.getElementById('manage-example').value = '';
+    document.getElementById('manage-practice').value = '';
+  } else if (comp === 'part1') {
     const topic = document.getElementById('manage-topic').value.trim();
     const q = document.getElementById('manage-question').value.trim();
     if (!topic || !q) { showToast('請輸入話題同問題'); return; }
-    newQ = { id, topic, content: q };
+    newQ = { id, topic, q };
+    document.getElementById('manage-topic').value = '';
+    document.getElementById('manage-question').value = '';
+  } else if (comp === 'part3') {
+    const topic = document.getElementById('manage-topic').value.trim();
+    const q = document.getElementById('manage-question').value.trim();
+    if (!topic || !q) { showToast('請輸入話題同問題'); return; }
+    newQ = { id, topic, q };
+    document.getElementById('manage-topic').value = '';
+    document.getElementById('manage-question').value = '';
   }
- 
+
   saveCustomQuestionToDB(comp, newQ);
 }
 
 async function saveCustomQuestionToDB(comp, questionData) {
-  if (allData.length >= 999) { showToast('已達儲存上限 (999)'); return; }
-  
   const result = await window.dataSdk.create({
     type: 'custom_question',
     user: currentUser,
@@ -1446,18 +1666,17 @@ async function saveCustomQuestionToDB(comp, questionData) {
 function deleteCustomQuestion(comp, id) {
   const record = allData.find(d => d.type === 'custom_question' && d.user === currentUser && d.component === comp && d.question_id === id);
   if (record) {
-    window.dataSdk.delete(record).then(() => { showToast('已刪除 ✓'); updateManageCounts(); });
+    window.dataSdk.delete(record).then(() => {
+      showToast('已刪除 ✓');
+      updateManageCounts();
+    });
   }
 }
 
-// ========== DATA SDK INIT ==========
+// ========== INITIALIZATION ==========
 (async () => {
   const r = await window.dataSdk.init(dataHandler);
-  if (!r.isOk) console.error('Data SDK init failed');
-  
-  // 啟動時自動去 Google Sheet 拉題目
-  await loadQuestionsFromGoogleSheet(); 
-  
+  if (!r.isOk) console.error('Data SDK init failed. Please check Google Sheets API.');
   lucide.createIcons();
   updateManageCounts();
 })();
