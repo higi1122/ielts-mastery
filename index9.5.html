@@ -1,0 +1,1533 @@
+<!doctype html>
+<html lang="zh-HK" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>IELTS 8.0 Study Hub</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&amp;family=Noto+Sans+TC:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: '#FAF8F5',
+            sand: '#F0EBE3',
+            ink: '#2D2A26',
+            accent: '#E07A5F',
+            mint: '#81B29A',
+            slate: '#6B7280',
+            cloud: '#FFFFFF',
+          },
+          fontFamily: {
+            sans: ['DM Sans', 'Noto Sans TC', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', 'Noto Sans TC', sans-serif; background: #FAF8F5; box-sizing: border-box;}
+    .app-root { height: 100%; overflow: auto; }
+    
+    /* 移除上下跳動，改為純淨的淡入淡出 */
+    .fade-in { animation: fadeIn 0.25s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .slide-up { animation: slideUp 0.25s ease-out; }
+    @keyframes slideUp { from { opacity: 0; } to { opacity: 1; } }
+    
+    .card-hover { transition: box-shadow 0.2s; }
+    .btn-press { transition: opacity 0.15s; }
+    .btn-press:active { opacity: 0.7; }
+    
+    /* 確保所有 input 和 textarea 不會觸發 iOS zoom */
+    input, textarea { font-family: 'DM Sans', 'Noto Sans TC', sans-serif; font-size: 16px !important; }
+    textarea:focus, input:focus { outline: none; border-color: #E07A5F; box-shadow: 0 0 0 3px rgba(224,122,95,0.15); }
+    
+    .toast-show { animation: toastIn 0.3s ease, toastOut 0.3s ease 2s forwards; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #d1ccc4; border-radius: 4px; }
+    .timer-ring { transition: stroke-dashoffset 1s linear; }
+  </style>
+ </head>
+ <body class="bg-cream text-ink">
+  <div id="app" class="app-root w-full relative">
+   <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 hidden">
+    <div class="bg-ink text-white px-4 py-2 rounded-xl text-sm shadow-lg"><span id="toast-msg"></span></div>
+   </div>
+   
+   <div id="screen-login" class="w-full h-full flex flex-col items-center justify-center px-6">
+    <div class="text-center slide-up">
+     <div class="w-20 h-20 bg-accent/10 rounded-3xl flex items-center justify-center mx-auto mb-5"><span class="text-4xl">🎯</span></div>
+     <h1 id="login-title" class="text-3xl font-bold mb-2 text-ink">IELTS 8.0</h1>
+     <p class="text-slate text-base mb-8">small steps every day : )</p>
+<div class="w-full max-w-xs mx-auto">
+  <label for="username-input" class="block text-left text-sm font-medium text-slate mb-1.5">用戶名稱</label> 
+  <input id="username-input" type="text" placeholder="輸入你的名稱" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink placeholder-slate/50 text-base mb-3"> 
+  
+  <label for="password-input" class="block text-left text-sm font-medium text-slate mb-1.5">密碼</label> 
+  <input id="password-input" type="password" placeholder="輸入密碼" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink placeholder-slate/50 text-base mb-6"> 
+  
+  <button id="login-btn" class="w-full py-3 rounded-xl bg-accent text-white font-semibold text-base btn-press shadow-sm shadow-accent/20">登入並載入資料</button>
+</div>
+    </div>
+   </div>
+
+   <div id="main-app" class="w-full h-full flex flex-col hidden">
+    <header class="flex-shrink-0 bg-cloud/80 backdrop-blur-sm border-b border-sand/50 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+     <div id="header-left" class="flex items-center gap-2">
+      <button id="back-btn" class="hidden w-9 h-9 rounded-xl bg-sand/50 flex items-center justify-center btn-press"> <i data-lucide="chevron-left" class="w-5 h-5"></i> </button>
+      <h2 id="header-title" class="font-bold text-lg">首頁</h2>
+     </div>
+     <div class="flex items-center gap-2">
+      <span id="user-badge" class="text-sm bg-accent/10 text-accent px-3 py-1 rounded-full font-medium"></span> 
+      <button id="logout-btn" class="w-9 h-9 rounded-xl bg-sand/50 flex items-center justify-center btn-press"> <i data-lucide="log-out" class="w-5 h-5 text-slate"></i> </button>
+     </div>
+    </header>
+    
+    <main id="content" class="flex-1 overflow-auto px-4 pb-24"></main>
+    
+    <nav class="flex-shrink-0 fixed bottom-0 left-0 right-0 bg-cloud border-t border-sand/50 flex z-30">
+     <button data-tab="home" class="nav-tab flex-1 flex flex-col items-center py-2 pt-3 text-accent"> <i data-lucide="home" class="w-6 h-6"></i> <span class="text-xs mt-1 font-medium">首頁</span> </button> 
+     <button data-tab="writing" class="nav-tab flex-1 flex flex-col items-center py-2 pt-3 text-slate"> <i data-lucide="pen-tool" class="w-6 h-6"></i> <span class="text-xs mt-1 font-medium">Writing</span> </button> 
+     <button data-tab="speaking" class="nav-tab flex-1 flex flex-col items-center py-2 pt-3 text-slate"> <i data-lucide="mic" class="w-6 h-6"></i> <span class="text-xs mt-1 font-medium">Speaking</span> </button> 
+     <button data-tab="review" class="nav-tab flex-1 flex flex-col items-center py-2 pt-3 text-slate"> <i data-lucide="bookmark" class="w-6 h-6"></i> <span class="text-xs mt-1 font-medium">溫習</span> </button> 
+     <button data-tab="settings" class="nav-tab flex-1 flex flex-col items-center py-2 pt-3 text-slate"> <i data-lucide="settings" class="w-6 h-6"></i> <span class="text-xs mt-1 font-medium">設定</span> </button>
+    </nav>
+   </div>
+  </div>
+
+<script>
+// ============ GOOGLE SHEET API ============
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyc2fgUN1JMV9wrlYvOAGnRv6sgBaAx1j1EN5KDUQJzok2CkItWcvQHCVQLpXJLF5gF/exec';
+
+// ============ SECURITY (Hashing) ============
+async function hashPassword(message) {
+  const msgBuffer = new TextEncoder().encode(message);                    
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);    
+  const hashArray = Array.from(new Uint8Array(hashBuffer));               
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); 
+  return hashHex;
+}
+
+// ============ STATE ============
+let currentUser = '';
+let allData = [];
+let currentScreen = 'home';
+let screenHistory = [];
+let timerInterval = null;
+let currentQuestionIndex = {};
+
+// Speaking P2 專用狀態與錄音變數
+let p2State = 'idle'; 
+let p2TimeLeft = 60; 
+let p2Item = null; 
+let p2SavedNotes = '';
+let mediaRecorder = null;
+let audioChunks = [];
+let audioUrl = null;
+
+// ============ QUESTION BANKS (Fallbacks / Defaults) ============
+let PARAPHRASE_BANK = [ { id:'p1', original:'Many people think that technology is important.', hint:'Try: It is widely acknowledged that... / plays a pivotal role', model: 'It is widely acknowledged that technology plays a pivotal role in shaping modern society.' } ];
+let GRAMMAR_BANK = [ { id:'g1', title:'Gerund as Subject', rule:'動名詞做主語：V-ing + verb', example:'Swimming regularly improves cardiovascular health.', practice:'用 "reduce" 寫一句以gerund做主語嘅句子' } ];
+let VOCAB_BANK = [ { id:'v1', word:'ubiquitous', meaning:'無處不在的', example:'Smartphones have become ubiquitous in modern society.', category:'General' } ];
+let SKELETON_BANK = [ { id:'s1', topic:'Some people believe that universities should focus on providing academic skills, while others think they should prepare students for employment.', model: '[Thesis] Universities must balance both academic and practical skills.\n[Topic 1] Academic skills build critical thinking.\n[Topic 2] Practical skills ensure immediate employability.' } ];
+let SPEAKING_P1_BANK = [ { id:'sp1', question:'Do you work or are you a student?', followUp:'What do you enjoy most about your work/studies?' } ];
+let SPEAKING_P2_BANK = [ { id:'sp2_1', cue:'Describe a skill you would like to learn.', points:['What the skill is','Why you want to learn it'] } ];
+let SPEAKING_P3_BANK = [ { id:'sp3_1', question:'How has technology changed the way people learn?', depth:'Consider both positive and negative aspects, with examples.' } ];
+
+// ============ CUSTOM DATA SDK ============
+const dataHandler = {
+  onDataChanged(data) {
+    allData = data;
+    if (currentScreen === 'home') renderHome();
+    if (currentScreen.startsWith('review')) renderCurrentScreen();
+    if (currentScreen.endsWith('-all')) renderCurrentScreen();
+  }
+};
+
+window.dataSdk = {
+  async init(handler) {
+    const localData = localStorage.getItem('ielts_data');
+    if (localData) {
+      allData = JSON.parse(localData);
+      handler.onDataChanged(allData);
+    }
+    return { isOk: true };
+  },
+  _saveLocal() {
+    localStorage.setItem('ielts_data', JSON.stringify(allData));
+    dataHandler.onDataChanged(allData);
+  },
+  async create(record) {
+    record.__backendId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+    allData.push(record);
+    this._saveLocal(); this._postToGas(record, 'create'); return { isOk: true };
+  },
+  async update(record) {
+    const idx = allData.findIndex(d => d.question_id === record.question_id && d.username === currentUser);
+    if(idx > -1) allData[idx] = record;
+    this._saveLocal(); this._postToGas(record, 'update'); return { isOk: true };
+  },
+  async delete(record) {
+    allData = allData.filter(d => !(d.question_id === record.question_id && d.username === currentUser));
+    this._saveLocal(); this._postToGas(record, 'delete'); return { isOk: true };
+  },
+  _postToGas(record, actionType) {
+    let comp = record.subtype || record.type;
+    if (comp === 'p1') comp = 'part1'; if (comp === 'p2') comp = 'part2'; if (comp === 'p3') comp = 'part3';
+    const payload = {
+      action: actionType, user: record.username, component: comp, question_id: record.question_id,
+      user_answer: record.user_answer || '', starred: record.starred || false, notes: record.notes || '', score: 0
+    };
+    fetch(GAS_API_URL, {
+      method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    }).catch(err => console.error('GAS Sync Error:', err));
+  }
+};
+
+// ============ 數據處理模組 (幫助背景同步) ============
+function processCloudData(cloudData) {
+  const sheetQuestions = cloudData.questions || [];
+  const sheetAnswers = cloudData.answers || []; 
+
+  PARAPHRASE_BANK = []; GRAMMAR_BANK = []; VOCAB_BANK = [];
+  SKELETON_BANK = []; SPEAKING_P1_BANK = []; SPEAKING_P2_BANK = []; SPEAKING_P3_BANK = [];
+
+  sheetQuestions.forEach(row => {
+    const comp = row.component ? row.component.toLowerCase() : '';
+    if (comp === 'paraphrase') PARAPHRASE_BANK.push({ id: row.id, original: row.content, hint: row.detail, model: row.extra || '' });
+    else if (comp === 'grammar') GRAMMAR_BANK.push({ id: row.id, title: row.topic, rule: row.content, example: row.detail, practice: row.extra || '', model: row.extra2 || '' });
+    else if (comp === 'vocab') VOCAB_BANK.push({ id: row.id, word: row.topic, meaning: row.content, example: row.detail, category: row.extra || '', model: row.extra2 || '' });
+    else if (comp === 'skeleton') SKELETON_BANK.push({ id: row.id, topic: row.content, model: row.extra || '' });
+    else if (comp === 'p1' || comp === 'part1') SPEAKING_P1_BANK.push({ id: row.id, question: row.content, followUp: row.detail });
+    else if (comp === 'p2' || comp === 'part2') {
+      const pts = row.detail ? row.detail.split(/[\n,]+/).map(p => p.trim()).filter(p => p) : [];
+      SPEAKING_P2_BANK.push({ id: row.id, cue: row.content, points: pts });
+    } 
+    else if (comp === 'p3' || comp === 'part3') SPEAKING_P3_BANK.push({ id: row.id, question: row.content, depth: row.detail });
+  });
+
+  if (sheetAnswers.length > 0) {
+    const parsedAnswers = sheetAnswers.map(row => {
+      let type = 'writing'; let subtype = row.component;
+      if (['part1', 'part2', 'part3', 'p1', 'p2', 'p3'].includes(row.component)) {
+        type = 'speaking';
+        if (row.component === 'part1') subtype = 'p1';
+        if (row.component === 'part2') subtype = 'p2';
+        if (row.component === 'part3') subtype = 'p3';
+      }
+      return {
+        username: row.user, type: type, subtype: subtype, question_id: row.question_id,
+        user_answer: row.user_answer || '', starred: (row.starred === true || row.starred === 'TRUE' || row.starred === 'true'),
+        notes: row.notes || '', score: row.score || 0, timestamp: row.timestamp, __backendId: row.question_id
+      };
+    });
+    allData = parsedAnswers;
+  } else {
+    allData = [];
+  }
+  window.dataSdk._saveLocal();
+  renderCurrentScreen(); 
+}
+
+// ============ 初始化與自動登入 ============
+async function initApp() {
+  await window.dataSdk.init(dataHandler);
+  document.getElementById('login-title').textContent = 'IELTS 8.0';
+  
+  const savedUser = localStorage.getItem('ielts_currentUser');
+  if (savedUser) {
+    currentUser = savedUser;
+    document.getElementById('screen-login').classList.add('hidden');
+    document.getElementById('main-app').classList.remove('hidden');
+    document.getElementById('user-badge').textContent = currentUser;
+    navigate('home');
+    
+    fetch(GAS_API_URL, {
+      method: 'POST', body: JSON.stringify({ action: 'fetchData', user: currentUser })
+    })
+    .then(res => res.json())
+    .then(cloudRes => {
+      if (cloudRes.status === 'success') processCloudData(cloudRes.data);
+    }).catch(err => console.log('背景同步失敗', err));
+  }
+}
+initApp();
+
+// ============ HELPERS ============
+function showToast(msg) {
+  const t = document.getElementById('toast'); document.getElementById('toast-msg').textContent = msg;
+  t.classList.remove('hidden'); t.querySelector('div').className = 'bg-ink text-white px-4 py-2 rounded-xl text-sm shadow-lg toast-show';
+  setTimeout(() => t.classList.add('hidden'), 2500);
+}
+function getAnswer(questionId) { return allData.find(d => d.username === currentUser && d.question_id === questionId); }
+function isStarred(questionId) { const a = getAnswer(questionId); return a && a.starred; }
+
+async function toggleStar(questionId, type, subtype) {
+  const existing = getAnswer(questionId);
+  if (existing) { const r = await window.dataSdk.update({ ...existing, starred: !existing.starred }); if (r.isOk) showToast(existing.starred ? '已取消收藏' : '已收藏 ⭐'); } 
+  else {
+    if (allData.length >= 999) { showToast('儲存已達上限'); return; }
+    const r = await window.dataSdk.create({ type, subtype, question_id: questionId, user_answer: '', starred: true, category: '', custom: false, timestamp: new Date().toISOString(), username: currentUser, notes: '' });
+    if (r.isOk) showToast('已收藏 ⭐');
+  }
+}
+
+async function saveAnswer(questionId, answer, type, subtype, extra = {}) {
+  const existing = getAnswer(questionId);
+  if (existing) {
+    const r = await window.dataSdk.update({ ...existing, user_answer: answer, timestamp: new Date().toISOString(), ...extra });
+    if (r.isOk) showToast('已儲存 ✓');
+  } else {
+    if (allData.length >= 999) { showToast('儲存已達上限'); return; }
+    const r = await window.dataSdk.create({ type, subtype, question_id: questionId, user_answer: answer, starred: false, category: extra.category || '', custom: false, timestamp: new Date().toISOString(), username: currentUser, notes: extra.notes || '' });
+    if (r.isOk) showToast('已儲存 ✓');
+  }
+}
+
+async function deleteRecord(record) { const r = await window.dataSdk.delete(record); if (r.isOk) showToast('已刪除'); }
+
+async function deleteCurrentAnswer(qid) {
+  const record = getAnswer(qid);
+  if (record) {
+    if (!confirm('確定要刪除這個答案嗎？清空後無法復原。')) return;
+    await deleteRecord(record);
+    renderCurrentScreen(); 
+  }
+}
+
+// ============ NAVIGATION ============
+function navigate(screen) {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  stopRecording(); // 切換畫面時自動停止錄音
+  p2State = 'idle';
+  if (currentScreen !== screen) screenHistory.push(currentScreen);
+  currentScreen = screen;
+  renderCurrentScreen(); updateNav();
+  document.getElementById('content').scrollTop = 0;
+}
+function goBack() { if (screenHistory.length > 0) { currentScreen = screenHistory.pop(); } else { currentScreen = 'home'; } renderCurrentScreen(); updateNav(); }
+
+function updateNav() {
+  const tabMap = { home:'home', writing:'writing', speaking:'speaking', review:'review', settings:'settings' };
+  const baseScreen = currentScreen.split('-')[0];
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    const t = tab.dataset.tab; const active = t === baseScreen || (currentScreen.startsWith(t));
+    tab.className = `nav-tab flex-1 flex flex-col items-center py-2 pt-3 ${active ? 'text-accent' : 'text-slate'}`;
+  });
+  const backBtn = document.getElementById('back-btn');
+  const showBack = currentScreen !== 'home' && currentScreen !== 'writing' && currentScreen !== 'speaking' && currentScreen !== 'review' && currentScreen !== 'settings';
+  backBtn.classList.toggle('hidden', !showBack); backBtn.style.display = showBack ? 'flex' : 'none';
+  const titles = { home: '首頁', writing: 'Writing 模組', speaking: 'Speaking 模組', review: '溫習', settings: '設定', 'writing-paraphrase': '改寫訓練', 'writing-grammar': 'Grammar', 'writing-vocab': 'Vocab Book', 'writing-skeleton': '骨架建立', 'speaking-p1': 'Part 1 Practice', 'speaking-p2': 'Part 2 Brainstorm', 'speaking-p3': 'Part 3 Deep Q', 'writing-paraphrase-all': '改寫訓練 - 全部', 'writing-grammar-all': 'Grammar - 全部', 'writing-vocab-all': 'Vocab Book - 全部', 'writing-skeleton-all': '骨架建立 - 全部', 'speaking-p1-all': 'Part 1 - 全部', 'speaking-p2-all': 'Part 2 - 全部', 'speaking-p3-all': 'Part 3 - 全部', 'review-starred': '收藏內容', 'review-writing': 'Writing 溫習', 'review-speaking': 'Speaking 溫習' };
+  document.getElementById('header-title').textContent = titles[currentScreen] || '首頁';
+}
+
+function renderCurrentScreen() {
+  const renderers = {
+    home: renderHome, writing: renderWriting, speaking: renderSpeaking, review: renderReview, settings: renderSettings,
+    'writing-paraphrase': renderParaphrase, 'writing-grammar': renderGrammar, 'writing-vocab': renderVocab, 'writing-skeleton': renderSkeleton,
+    'speaking-p1': renderSpeakingP1, 'speaking-p2': renderSpeakingP2, 'speaking-p3': renderSpeakingP3,
+    'writing-paraphrase-all': () => renderAllMode('writing','paraphrase', PARAPHRASE_BANK, i => i.original),
+    'writing-grammar-all': () => renderAllMode('writing','grammar', GRAMMAR_BANK, i => i.title),
+    'writing-vocab-all': () => renderAllMode('writing','vocab', VOCAB_BANK, i => `${i.word} — ${i.meaning}`),
+    'writing-skeleton-all': () => renderAllMode('writing','skeleton', SKELETON_BANK, i => i.topic.substring(0,60)+'...'),
+    'speaking-p1-all': () => renderAllMode('speaking','p1', SPEAKING_P1_BANK, i => i.question),
+    'speaking-p2-all': () => renderAllMode('speaking','p2', SPEAKING_P2_BANK, i => i.cue.substring(0,60)+'...'),
+    'speaking-p3-all': () => renderAllMode('speaking','p3', SPEAKING_P3_BANK, i => i.question),
+    'review-starred': renderReviewStarred, 'review-writing': renderReviewType.bind(null,'writing'), 'review-speaking': renderReviewType.bind(null,'speaking')
+  };
+  if (renderers[currentScreen]) renderers[currentScreen]();
+  setTimeout(() => lucide.createIcons(), 50);
+}
+
+// ============ HOME ============
+function renderHome() {
+  const c = document.getElementById('content');
+  const lastSession = allData.filter(d => d.username === currentUser).sort((a,b) => (b.timestamp||'').localeCompare(a.timestamp||''))[0];
+  const lastTime = lastSession ? new Date(lastSession.timestamp).toLocaleString('zh-HK', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '首次使用';
+  const totalAnswers = allData.filter(d => d.username === currentUser && d.user_answer).length;
+  const starredCount = allData.filter(d => d.username === currentUser && d.starred).length;
+
+  c.innerHTML = `
+    <div class="fade-in pt-4 pb-4">
+      <div class="mb-6">
+        <h3 class="text-2xl font-bold mb-1">Welcome back! 👋</h3>
+        <p class="text-slate text-sm">上次學習：${lastTime}</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="bg-cloud rounded-2xl p-4 border border-sand/50">
+          <div class="text-2xl font-bold text-accent">${totalAnswers}</div>
+          <div class="text-sm text-slate mt-1">已完成練習</div>
+        </div>
+        <div class="bg-cloud rounded-2xl p-4 border border-sand/50">
+          <div class="text-2xl font-bold text-mint">${starredCount}</div>
+          <div class="text-sm text-slate mt-1">收藏項目</div>
+        </div>
+      </div>
+      <h4 class="font-semibold text-sm text-slate uppercase tracking-wide mb-3">學習模組</h4>
+      <div class="space-y-3">
+        <button onclick="navigate('writing')" class="w-full bg-cloud rounded-2xl p-4 border border-sand/50 flex items-center gap-4 card-hover text-left">
+          <div class="w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0"><span class="text-2xl">📝</span></div>
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-base">Writing 模組</div>
+            <div class="text-sm text-slate mt-1">結構邏輯 ・ 高階詞彙</div>
+          </div>
+          <i data-lucide="chevron-right" class="w-6 h-6 text-slate/40 flex-shrink-0"></i>
+        </button>
+        <button onclick="navigate('speaking')" class="w-full bg-cloud rounded-2xl p-4 border border-sand/50 flex items-center gap-4 card-hover text-left">
+          <div class="w-14 h-14 rounded-xl bg-mint/10 flex items-center justify-center flex-shrink-0"><span class="text-2xl">🗣️</span></div>
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-base">Speaking 模組</div>
+            <div class="text-sm text-slate mt-1">流暢度 ・ 思路擴展</div>
+          </div>
+          <i data-lucide="chevron-right" class="w-6 h-6 text-slate/40 flex-shrink-0"></i>
+        </button>
+        <button onclick="navigate('review')" class="w-full bg-cloud rounded-2xl p-4 border border-sand/50 flex items-center gap-4 card-hover text-left">
+          <div class="w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0"><span class="text-2xl">📚</span></div>
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-base">溫習</div>
+            <div class="text-sm text-slate mt-1">回顧收藏 ・ 鞏固記憶</div>
+          </div>
+          <i data-lucide="chevron-right" class="w-6 h-6 text-slate/40 flex-shrink-0"></i>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// ============ WRITING MODULE ============
+function renderWriting() {
+  const c = document.getElementById('content');
+  const components = [
+    { key:'writing-paraphrase', icon:'🔄', title:'Paraphrasing Engine', desc:'改寫訓練 — 將6分句子升級到8分', color:'accent' },
+    { key:'writing-grammar', icon:'📐', title:'Grammar', desc:'重點語法教學與練習', color:'accent' },
+    { key:'writing-vocab', icon:'📖', title:'Vocab Book', desc:'Writing 實用詞彙庫', color:'accent' },
+    { key:'writing-skeleton', icon:'🏗️', title:'Skeleton Builder', desc:'Task 2 骨架建立練習', color:'accent' }
+  ];
+  c.innerHTML = `<div class="fade-in pt-4 pb-4 space-y-3">${components.map(comp => `
+    <button onclick="navigate('${comp.key}')" class="w-full bg-cloud rounded-2xl p-4 border border-sand/50 flex items-center gap-4 card-hover text-left">
+      <div class="w-12 h-12 rounded-xl bg-${comp.color}/10 flex items-center justify-center flex-shrink-0 text-xl">${comp.icon}</div>
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-base">${comp.title}</div>
+        <div class="text-sm text-slate mt-0.5">${comp.desc}</div>
+      </div>
+      <i data-lucide="chevron-right" class="w-5 h-5 text-slate/40 flex-shrink-0"></i>
+    </button>
+  `).join('')}</div>`;
+}
+
+// ============ PARAPHRASING ============
+function renderParaphrase() {
+  const c = document.getElementById('content');
+  const key = 'writing-paraphrase';
+  if (!currentQuestionIndex[key]) currentQuestionIndex[key] = 0;
+  const item = PARAPHRASE_BANK[currentQuestionIndex[key]];
+  const existing = getAnswer(item.id);
+  
+  const hasAnswer = existing && existing.user_answer && existing.user_answer.trim() !== '';
+  let modelHtml = '';
+  if (hasAnswer && item.model) {
+    modelHtml = `
+      <div class="mt-5 slide-up">
+        <div class="flex items-center gap-1.5 mb-2">
+          <span class="text-lg">💡</span>
+          <h4 class="font-bold text-sm text-ink">考官級示範 (Band 8.0)</h4>
+        </div>
+        <div class="bg-mint/15 border border-mint/30 rounded-xl p-3.5">
+          <p class="text-sm text-ink font-medium leading-relaxed">${item.model}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  let deleteBtnHtml = '';
+  if (existing) {
+    deleteBtnHtml = `
+      <button onclick="deleteCurrentAnswer('${item.id}')" class="w-12 h-12 rounded-xl border border-red-200 bg-red-50 flex items-center justify-center btn-press">
+        <i data-lucide="trash-2" class="w-5 h-5 text-red-400"></i>
+      </button>
+    `;
+  }
+
+  c.innerHTML = `
+    <div class="fade-in pt-4 pb-4">
+      <div class="flex justify-between items-center mb-4">
+        <span class="text-xs bg-accent/10 text-accent px-2.5 py-1 rounded-full font-medium">改寫訓練 (${currentQuestionIndex[key] + 1}/${PARAPHRASE_BANK.length})</span>
+        <button onclick="navigate('writing-paraphrase-all')" class="text-xs text-accent font-medium btn-press">全部題目 →</button>
+      </div>
+      <div class="bg-cloud rounded-2xl border border-sand/50 p-5 mb-4">
+        <div class="text-xs text-slate font-medium uppercase tracking-wide mb-2">Band 6.0 原句</div>
+        <p class="text-base font-medium leading-relaxed mb-3">${item.original}</p>
+        <div class="bg-sand/30 rounded-xl p-3">
+          <div class="text-xs text-slate mb-1">💡 提示</div>
+          <p class="text-xs text-slate">${item.hint}</p>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label for="para-answer" class="block text-xs font-medium text-slate mb-1.5">你的 Band 8.0 改寫</label>
+        <textarea id="para-answer" rows="4" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink text-sm resize-none" placeholder="輸入你的改寫句子...">${existing ? existing.user_answer : ''}</textarea>
+      </div>
+      
+      <div class="flex gap-2">
+        <button onclick="saveParaphrase('${item.id}')" class="flex-1 py-3 rounded-xl bg-accent text-white font-semibold text-sm btn-press">
+          <i data-lucide="save" class="w-4 h-4 inline mr-1"></i>儲存
+        </button>
+        <button onclick="toggleStar('${item.id}','writing','paraphrase').then(()=>renderParaphrase())" class="w-12 h-12 rounded-xl border ${isStarred(item.id)?'border-accent bg-accent/10':'border-sand'} flex items-center justify-center btn-press">
+          <i data-lucide="star" class="w-5 h-5 ${isStarred(item.id)?'text-accent':'text-slate'}"></i>
+        </button>
+        ${deleteBtnHtml}
+      </div>
+      
+      ${modelHtml} 
+
+      <div class="flex gap-2 mt-4 pt-4 border-t border-sand/50">
+        <button onclick="prevQuestion('writing-paraphrase', ${PARAPHRASE_BANK.length})" class="flex-1 py-2.5 rounded-xl border border-sand text-slate text-sm font-medium btn-press"><i data-lucide="chevron-left" class="w-4 h-4 inline mr-1"></i>上一題</button>
+        <button onclick="randomQuestion('writing-paraphrase', ${PARAPHRASE_BANK.length})" class="flex-1 py-2.5 rounded-xl border border-sand text-slate text-sm font-medium btn-press"><i data-lucide="shuffle" class="w-4 h-4 inline mr-1"></i>隨機</button>
+        <button onclick="nextQuestion('writing-paraphrase', ${PARAPHRASE_BANK.length})" class="flex-1 py-2.5 rounded-xl border border-sand text-slate text-sm font-medium btn-press">下一題<i data-lucide="chevron-right" class="w-4 h-4 inline ml-1"></i></button>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+async function saveParaphrase(qid) {
+  const v = document.getElementById('para-answer').value.trim();
+  if (!v) { showToast('請輸入答案'); return; }
+  await saveAnswer(qid, v, 'writing', 'paraphrase');
+  renderParaphrase();
+}
+
+// ============ NAVIGATION HELPERS ============
+function nextQuestion(component, total) { currentQuestionIndex[component] = (currentQuestionIndex[component] + 1) % total; renderCurrentScreen(); }
+function prevQuestion(component, total) { currentQuestionIndex[component] = (currentQuestionIndex[component] - 1 + total) % total; renderCurrentScreen(); }
+function randomQuestion(component, total) { currentQuestionIndex[component] = Math.floor(Math.random() * total); renderCurrentScreen(); }
+
+// ============ GRAMMAR ============
+function renderGrammar() {
+  const c = document.getElementById('content');
+  const key = 'writing-grammar';
+  if (!currentQuestionIndex[key]) currentQuestionIndex[key] = 0;
+  const item = GRAMMAR_BANK[currentQuestionIndex[key]];
+  const existing = getAnswer(item.id);
+
+  let deleteBtnHtml = '';
+  if (existing) {
+    deleteBtnHtml = `
+      <button onclick="deleteCurrentAnswer('${item.id}')" class="w-14 h-14 rounded-xl border border-red-200 bg-red-50 flex items-center justify-center btn-press">
+        <i data-lucide="trash-2" class="w-6 h-6 text-red-400"></i>
+      </button>
+    `;
+  }
+
+  c.innerHTML = `
+    <div class="fade-in pt-4 pb-4">
+      <div class="flex justify-between items-center mb-4">
+        <span class="text-sm bg-accent/10 text-accent px-3 py-1 rounded-full font-medium">Grammar (${currentQuestionIndex[key] + 1}/${GRAMMAR_BANK.length})</span>
+        <button onclick="navigate('writing-grammar-all')" class="text-sm text-accent font-medium btn-press">全部題目 →</button>
+      </div>
+      <div class="bg-cloud rounded-2xl border border-sand/50 p-5 mb-4">
+        <h3 class="font-bold text-xl mb-3">${item.title}</h3>
+        <div class="bg-accent/5 rounded-xl p-4 mb-3">
+          <div class="text-sm font-semibold text-accent mb-1">規則</div>
+          <p class="text-base">${item.rule}</p>
+        </div>
+        <div class="bg-mint/5 rounded-xl p-4 mb-3">
+          <div class="text-sm font-semibold text-mint mb-1">範例</div>
+          <p class="text-base italic">${item.example}</p>
+        </div>
+        <div class="bg-sand/30 rounded-xl p-4">
+          <div class="text-sm text-slate mb-1">✏️ 練習題</div>
+          <p class="text-base">${item.practice}</p>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label for="gram-answer" class="block text-sm font-medium text-slate mb-2">你的答案</label>
+        <textarea id="gram-answer" rows="3" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink text-base resize-none" placeholder="輸入你的句子...">${existing ? existing.user_answer : ''}</textarea>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="saveAnswer('${item.id}', document.getElementById('gram-answer').value.trim(), 'writing', 'grammar')" class="flex-1 py-3.5 rounded-xl bg-accent text-white font-semibold text-base btn-press"><i data-lucide="save" class="w-5 h-5 inline mr-1"></i>儲存</button>
+        <button onclick="toggleStar('${item.id}','writing','grammar').then(()=>renderGrammar())" class="w-14 h-14 rounded-xl border ${isStarred(item.id)?'border-accent bg-accent/10':'border-sand'} flex items-center justify-center btn-press"><i data-lucide="star" class="w-6 h-6 ${isStarred(item.id)?'text-accent':'text-slate'}"></i></button>
+        ${deleteBtnHtml}
+      </div>
+      <div class="flex gap-2 mt-4">
+        <button onclick="prevQuestion('writing-grammar', ${GRAMMAR_BANK.length})" class="flex-1 py-3 rounded-xl border border-sand text-slate text-sm font-medium btn-press"><i data-lucide="chevron-left" class="w-4 h-4 inline mr-1"></i>上一題</button>
+        <button onclick="randomQuestion('writing-grammar', ${GRAMMAR_BANK.length})" class="flex-1 py-3 rounded-xl border border-sand text-slate text-sm font-medium btn-press"><i data-lucide="shuffle" class="w-4 h-4 inline mr-1"></i>隨機</button>
+        <button onclick="nextQuestion('writing-grammar', ${GRAMMAR_BANK.length})" class="flex-1 py-3 rounded-xl border border-sand text-slate text-sm font-medium btn-press">下一題<i data-lucide="chevron-right" class="w-4 h-4 inline ml-1"></i></button>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+// ============ VOCAB ============
+function renderVocab() {
+  const c = document.getElementById('content');
+  const key = 'writing-vocab';
+  if (!currentQuestionIndex[key]) currentQuestionIndex[key] = 0;
+  const item = VOCAB_BANK[currentQuestionIndex[key]];
+  const existing = getAnswer(item.id);
+
+  let deleteBtnHtml = '';
+  if (existing) {
+    deleteBtnHtml = `
+      <button onclick="deleteCurrentAnswer('${item.id}')" class="w-14 h-14 rounded-xl border border-red-200 bg-red-50 flex items-center justify-center btn-press">
+        <i data-lucide="trash-2" class="w-6 h-6 text-red-400"></i>
+      </button>
+    `;
+  }
+
+  c.innerHTML = `
+    <div class="fade-in pt-4 pb-4">
+      <div class="flex justify-between items-center mb-4">
+        <span class="text-sm bg-accent/10 text-accent px-3 py-1 rounded-full font-medium">Vocab Book (${currentQuestionIndex[key] + 1}/${VOCAB_BANK.length})</span>
+        <button onclick="navigate('writing-vocab-all')" class="text-sm text-accent font-medium btn-press">全部詞彙 →</button>
+      </div>
+      <div class="bg-cloud rounded-2xl border border-sand/50 p-5 mb-4">
+        <div class="flex items-start justify-between mb-3">
+          <h3 class="font-bold text-2xl">${item.word}</h3>
+          <span class="text-xs bg-sand/50 px-2.5 py-1 rounded-full text-slate">${item.category}</span>
+        </div>
+        <p class="text-base text-slate mb-4">${item.meaning}</p>
+        <div class="bg-mint/5 rounded-xl p-4">
+          <div class="text-sm font-semibold text-mint mb-1">例句</div>
+          <p class="text-base italic">${item.example}</p>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label for="vocab-answer" class="block text-sm font-medium text-slate mb-2">用此詞彙造句</label>
+        <textarea id="vocab-answer" rows="3" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink text-base resize-none" placeholder="用 ${item.word} 寫一個句子...">${existing ? existing.user_answer : ''}</textarea>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="saveAnswer('${item.id}', document.getElementById('vocab-answer').value.trim(), 'writing', 'vocab')" class="flex-1 py-3.5 rounded-xl bg-accent text-white font-semibold text-base btn-press"><i data-lucide="save" class="w-5 h-5 inline mr-1"></i>儲存</button>
+        <button onclick="toggleStar('${item.id}','writing','vocab').then(()=>renderVocab())" class="w-14 h-14 rounded-xl border ${isStarred(item.id)?'border-accent bg-accent/10':'border-sand'} flex items-center justify-center btn-press"><i data-lucide="star" class="w-6 h-6 ${isStarred(item.id)?'text-accent':'text-slate'}"></i></button>
+        ${deleteBtnHtml}
+      </div>
+      <div class="flex gap-2 mt-4">
+        <button onclick="prevQuestion('writing-vocab', ${VOCAB_BANK.length})" class="flex-1 py-3 rounded-xl border border-sand text-slate text-sm font-medium btn-press"><i data-lucide="chevron-left" class="w-4 h-4 inline mr-1"></i>上一個</button>
+        <button onclick="randomQuestion('writing-vocab', ${VOCAB_BANK.length})" class="flex-1 py-3 rounded-xl border border-sand text-slate text-sm font-medium btn-press"><i data-lucide="shuffle" class="w-4 h-4 inline mr-1"></i>隨機</button>
+        <button onclick="nextQuestion('writing-vocab', ${VOCAB_BANK.length})" class="flex-1 py-3 rounded-xl border border-sand text-slate text-sm font-medium btn-press">下一個<i data-lucide="chevron-right" class="w-4 h-4 inline ml-1"></i></button>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+// ============ SKELETON BUILDER ============
+function renderSkeleton() {
+  const c = document.getElementById('content');
+  const key = 'writing-skeleton';
+  if (!currentQuestionIndex[key]) currentQuestionIndex[key] = 0;
+  const item = SKELETON_BANK[currentQuestionIndex[key]];
+  const existing = getAnswer(item.id);
+  
+  let thesis = '', topic1 = '', topic2 = '', topic3 = '';
+  let hasAnswer = false;
+  
+  if (existing && existing.user_answer) {
+    try { 
+      const p = JSON.parse(existing.user_answer); 
+      thesis = p.thesis||''; topic1 = p.topic1||''; topic2 = p.topic2||''; topic3 = p.topic3||''; 
+      if (thesis || topic1 || topic2) hasAnswer = true;
+    } catch(e) {}
+  }
+
+  let modelHtml = '';
+  if (hasAnswer && item.model) {
+    const formattedModel = item.model.split('\n').map(line => `<p class="mb-2 last:mb-0 text-sm leading-relaxed">${line}</p>`).join('');
+    modelHtml = `
+      <div class="mt-5 slide-up">
+        <div class="flex items-center gap-1.5 mb-2">
+          <span class="text-lg">💡</span>
+          <h4 class="font-bold text-sm text-ink">考官骨架示範 (Band 8.0)</h4>
+        </div>
+        <div class="bg-mint/15 border border-mint/30 rounded-xl p-3.5 text-ink">
+          ${formattedModel}
+        </div>
+      </div>
+    `;
+  }
+
+  let deleteBtnHtml = '';
+  if (existing) {
+    deleteBtnHtml = `
+      <button onclick="deleteCurrentAnswer('${item.id}')" class="w-12 h-12 rounded-xl border border-red-200 bg-red-50 flex items-center justify-center btn-press">
+        <i data-lucide="trash-2" class="w-5 h-5 text-red-400"></i>
+      </button>
+    `;
+  }
+
+  c.innerHTML = `
+    <div class="fade-in pt-4 pb-4">
+      <div class="flex justify-between items-center mb-4">
+        <span class="text-xs bg-accent/10 text-accent px-2.5 py-1 rounded-full font-medium">Skeleton Builder (${currentQuestionIndex[key] + 1}/${SKELETON_BANK.length})</span>
+        <button onclick="navigate('writing-skeleton-all')" class="text-xs text-accent font-medium btn-press">全部題目 →</button>
+      </div>
+      <div class="bg-cloud rounded-2xl border border-sand/50 p-5 mb-4">
+        <div class="text-xs text-slate font-medium uppercase tracking-wide mb-2">Task 2 題目</div>
+        <p class="text-sm leading-relaxed">${item.topic}</p>
+      </div>
+      <div class="space-y-3 mb-4">
+        <div><label for="skel-thesis" class="block text-xs font-medium text-slate mb-1.5">1. Thesis Statement (主旨句)</label><textarea id="skel-thesis" rows="2" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink text-sm resize-none" placeholder="你的立場/觀點...">${thesis}</textarea></div>
+        <div><label for="skel-topic1" class="block text-xs font-medium text-slate mb-1.5">2. Body 1 Topic Sentence</label><textarea id="skel-topic1" rows="2" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink text-sm resize-none" placeholder="第一段主題句...">${topic1}</textarea></div>
+        <div><label for="skel-topic2" class="block text-xs font-medium text-slate mb-1.5">3. Body 2 Topic Sentence</label><textarea id="skel-topic2" rows="2" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink text-sm resize-none" placeholder="第二段主題句...">${topic2}</textarea></div>
+        <div><label for="skel-topic3" class="block text-xs font-medium text-slate mb-1.5">4. Conclusion (optional)</label><textarea id="skel-topic3" rows="2" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink text-sm resize-none" placeholder="總結句...">${topic3}</textarea></div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="saveSkeleton('${item.id}')" class="flex-1 py-3 rounded-xl bg-accent text-white font-semibold text-sm btn-press"><i data-lucide="save" class="w-4 h-4 inline mr-1"></i>儲存骨架</button>
+        <button onclick="toggleStar('${item.id}','writing','skeleton').then(()=>renderSkeleton())" class="w-12 h-12 rounded-xl border ${isStarred(item.id)?'border-accent bg-accent/10':'border-sand'} flex items-center justify-center btn-press"><i data-lucide="star" class="w-5 h-5 ${isStarred(item.id)?'text-accent':'text-slate'}"></i></button>
+        ${deleteBtnHtml}
+      </div>
+
+      ${modelHtml} 
+      
+      <div class="flex gap-2 mt-4 pt-4 border-t border-sand/50">
+        <button onclick="prevQuestion('writing-skeleton', ${SKELETON_BANK.length})" class="flex-1 py-2.5 rounded-xl border border-sand text-slate text-sm font-medium btn-press"><i data-lucide="chevron-left" class="w-4 h-4 inline mr-1"></i>上一題</button>
+        <button onclick="randomQuestion('writing-skeleton', ${SKELETON_BANK.length})" class="flex-1 py-2.5 rounded-xl border border-sand text-slate text-sm font-medium btn-press"><i data-lucide="shuffle" class="w-4 h-4 inline mr-1"></i>隨機</button>
+        <button onclick="nextQuestion('writing-skeleton', ${SKELETON_BANK.length})" class="flex-1 py-2.5 rounded-xl border border-sand text-slate text-sm font-medium btn-press">下一題<i data-lucide="chevron-right" class="w-4 h-4 inline ml-1"></i></button>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+async function saveSkeleton(qid) {
+  const data = JSON.stringify({ thesis: document.getElementById('skel-thesis').value.trim(), topic1: document.getElementById('skel-topic1').value.trim(), topic2: document.getElementById('skel-topic2').value.trim(), topic3: document.getElementById('skel-topic3').value.trim(), });
+  await saveAnswer(qid, data, 'writing', 'skeleton');
+  renderSkeleton(); 
+}
+
+// ============ SPEAKING MODULE ============
+function renderSpeaking() {
+  const c = document.getElementById('content');
+  const components = [
+    { key:'speaking-p1', icon:'💬', title:'Part 1 Practice', desc:'隨機 Part 1 題目即時練習', color:'mint' },
+    { key:'speaking-p2', icon:'⏱️', title:'Part 2 Brainstorm', desc:'60秒準備 + 2分鐘回答', color:'mint' },
+    { key:'speaking-p3', icon:'🧠', title:'Part 3 Deep Questions', desc:'深度問題思維訓練', color:'mint' }
+  ];
+  c.innerHTML = `<div class="fade-in pt-4 pb-4 space-y-3">${components.map(comp => `
+    <button onclick="navigate('${comp.key}')" class="w-full bg-cloud rounded-2xl p-4 border border-sand/50 flex items-center gap-4 card-hover text-left">
+      <div class="w-12 h-12 rounded-xl bg-${comp.color}/10 flex items-center justify-center flex-shrink-0 text-xl">${comp.icon}</div>
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-base">${comp.title}</div>
+        <div class="text-sm text-slate mt-0.5">${comp.desc}</div>
+      </div>
+      <i data-lucide="chevron-right" class="w-5 h-5 text-slate/40 flex-shrink-0"></i>
+    </button>
+  `).join('')}</div>`;
+}
+
+// ============ SPEAKING P1 ============
+function renderSpeakingP1() {
+  const c = document.getElementById('content');
+  const key = 'speaking-p1';
+  if (!currentQuestionIndex[key]) currentQuestionIndex[key] = 0;
+  const item = SPEAKING_P1_BANK[currentQuestionIndex[key]];
+  const existing = getAnswer(item.id);
+  c.innerHTML = `
+    <div class="fade-in pt-4 pb-4">
+      <div class="flex justify-between items-center mb-4">
+        <span class="text-sm bg-mint/10 text-mint px-3 py-1 rounded-full font-medium">Part 1 (${currentQuestionIndex[key] + 1}/${SPEAKING_P1_BANK.length})</span>
+        <button onclick="navigate('speaking-p1-all')" class="text-sm text-accent font-medium btn-press">全部題目 →</button>
+      </div>
+      <div class="bg-cloud rounded-2xl border border-sand/50 p-5 mb-4">
+        <div class="text-sm text-slate font-medium mb-2">Question</div>
+        <p class="text-xl font-semibold mb-4">${item.question}</p>
+        <div class="bg-mint/5 rounded-xl p-4">
+          <div class="text-sm text-mint font-medium mb-1">Follow-up</div>
+          <p class="text-base">${item.followUp}</p>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label for="sp1-answer" class="block text-sm font-medium text-slate mb-2">你的回答 (可打字記錄)</label>
+        <textarea id="sp1-answer" rows="4" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink text-base resize-none" placeholder="記錄你的回答要點或完整回答...">${existing ? existing.user_answer : ''}</textarea>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="saveAnswer('${item.id}', document.getElementById('sp1-answer').value.trim(), 'speaking', 'p1')" class="flex-1 py-3.5 rounded-xl bg-mint text-white font-semibold text-base btn-press"><i data-lucide="save" class="w-5 h-5 inline mr-1"></i>儲存</button>
+        <button onclick="toggleStar('${item.id}','speaking','p1').then(()=>renderSpeakingP1())" class="w-14 h-14 rounded-xl border ${isStarred(item.id)?'border-accent bg-accent/10':'border-sand'} flex items-center justify-center btn-press"><i data-lucide="star" class="w-6 h-6 ${isStarred(item.id)?'text-accent':'text-slate'}"></i></button>
+      </div>
+      <div class="flex gap-2 mt-4">
+        <button onclick="prevQuestion('speaking-p1', ${SPEAKING_P1_BANK.length})" class="flex-1 py-3 rounded-xl border border-sand text-slate text-sm font-medium btn-press"><i data-lucide="chevron-left" class="w-4 h-4 inline mr-1"></i>上一題</button>
+        <button onclick="randomQuestion('speaking-p1', ${SPEAKING_P1_BANK.length})" class="flex-1 py-3 rounded-xl border border-sand text-slate text-sm font-medium btn-press"><i data-lucide="shuffle" class="w-4 h-4 inline mr-1"></i>隨機</button>
+        <button onclick="nextQuestion('speaking-p1', ${SPEAKING_P1_BANK.length})" class="flex-1 py-3 rounded-xl border border-sand text-slate text-sm font-medium btn-press">下一題<i data-lucide="chevron-right" class="w-4 h-4 inline ml-1"></i></button>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+// ============ SPEAKING P2 (Timer, Recording & Controls) ============
+function renderSpeakingP2() {
+  const c = document.getElementById('content');
+  if (!p2Item) p2Item = SPEAKING_P2_BANK[Math.floor(Math.random() * SPEAKING_P2_BANK.length)];
+  const existing = getAnswer(p2Item.id);
+
+  // ⏱️ 計時器小工具 (包含解鎖、暫停、重來)
+  const timerUI = (phase) => `
+    <div class="text-center mb-4 flex flex-col items-center">
+      <div onclick="toggleP2Lock()" class="inline-flex items-center gap-2 bg-${phase==='prep'?'accent':'mint'}/10 text-${phase==='prep'?'accent':'mint'} px-4 py-2 rounded-full text-base font-semibold cursor-pointer btn-press border border-${phase==='prep'?'accent':'mint'}/20">
+        <i data-lucide="${p2TimerUnlocked ? 'unlock' : 'lock'}" class="w-4 h-4"></i>
+        ${phase==='prep' ? '準備時間' : '回答時間'} <span id="p2-timer" class="font-bold w-12 text-right">${p2TimeLeft}s</span>
+      </div>
+      ${p2TimerUnlocked ? `
+      <div class="flex gap-2 mt-3 slide-up">
+        <button onclick="toggleP2Pause()" class="px-4 py-2 rounded-xl bg-sand/40 text-slate text-sm font-medium flex items-center gap-1.5 btn-press">
+          <i data-lucide="${p2IsPaused ? 'play' : 'pause'}" class="w-4 h-4"></i> ${p2IsPaused ? '繼續' : '暫停'}
+        </button>
+        <button onclick="resetP2Timer(${phase==='prep'?60:120})" class="px-4 py-2 rounded-xl bg-sand/40 text-slate text-sm font-medium flex items-center gap-1.5 btn-press">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 重來
+        </button>
+      </div>` : ''}
+    </div>
+  `;
+
+  if (p2State === 'idle') {
+    audioUrl = null; p2TimerUnlocked = false; p2IsPaused = false; p2IsRecordingStarted = false;
+    c.innerHTML = `
+      <div class="fade-in pt-4 pb-4">
+        <div class="flex justify-between items-center mb-4"><span class="text-sm bg-mint/10 text-mint px-3 py-1 rounded-full font-medium">Part 2</span><button onclick="navigate('speaking-p2-all')" class="text-sm text-accent font-medium btn-press">全部題目 →</button></div>
+        <div class="bg-cloud rounded-2xl border border-sand/50 p-5 mb-4">
+          <div class="text-sm text-slate font-medium mb-2">Cue Card</div>
+          <p class="text-lg font-semibold mb-4">${p2Item.cue}</p>
+          <div class="space-y-2">${p2Item.points.map(p => `<div class="text-base text-slate flex items-start gap-2"><span class="text-accent mt-0.5">•</span>${p}</div>`).join('')}</div>
+        </div>
+        <button onclick="startP2Prep()" class="w-full py-3.5 rounded-xl bg-mint text-white font-semibold text-base btn-press"><i data-lucide="play" class="w-5 h-5 inline mr-1"></i>開始 60 秒準備</button>
+        <button onclick="p2Item=null;renderSpeakingP2()" class="w-full mt-3 py-3 rounded-xl border border-sand text-slate text-sm font-medium btn-press"><i data-lucide="refresh-cw" class="w-5 h-5 inline mr-1"></i>換一題</button>
+      </div>
+    `;
+  } else if (p2State === 'prep') {
+    c.innerHTML = `
+      <div class="fade-in pt-4 pb-4">
+        ${timerUI('prep')}
+        <div class="bg-cloud rounded-2xl border border-accent/30 p-5 mb-4">
+          <p class="text-base font-semibold mb-3">${p2Item.cue}</p>
+          <div class="text-sm text-slate mb-4">${p2Item.points.map(p=>'• '+p).join(' ')}</div>
+          <label for="p2-notes" class="block text-sm font-medium text-slate mb-2">你的筆記</label>
+          <textarea id="p2-notes" rows="6" class="w-full px-4 py-3 rounded-xl bg-cream border border-sand text-ink text-base resize-none" placeholder="快速記下你的要點...">${existing ? existing.notes || '' : p2SavedNotes}</textarea>
+        </div>
+        <button onclick="skipPrepAndSpeak()" class="w-full py-3.5 rounded-xl bg-ink text-white font-semibold text-base btn-press shadow-sm">
+          <i data-lucide="check" class="w-5 h-5 inline mr-1"></i>提早完成筆記，去回答
+        </button>
+      </div>
+    `;
+  } else if (p2State === 'speaking') {
+    if (!p2IsRecordingStarted) {
+      // ⏳ 過場畫面：等待用戶手動撳掣開始錄音
+      c.innerHTML = `
+        <div class="fade-in pt-4 pb-4">
+          <div class="text-center mb-4"><div class="inline-flex items-center gap-2 bg-slate/10 text-slate px-4 py-2 rounded-full text-base font-semibold"><i data-lucide="mic" class="w-5 h-5"></i>即將開始回答 (120s)</div></div>
+          <div class="bg-cloud rounded-2xl border border-mint/30 p-5 mb-5 relative">
+            <div class="text-sm text-slate font-medium mb-2">你的筆記（已鎖定）</div>
+            <div class="text-base bg-sand/20 rounded-xl p-4 text-slate whitespace-pre-wrap">${p2SavedNotes || '(無筆記)'}</div>
+            <div class="mt-6 text-center">
+              <button onclick="startRealSpeaking()" class="w-full py-4 rounded-xl bg-red-500 text-white font-bold text-lg btn-press shadow-lg shadow-red-500/30 animate-pulse">
+                <i data-lucide="mic" class="w-6 h-6 inline mr-2"></i>按此開始計時並錄音
+              </button>
+              <p class="text-sm text-slate mt-3">深呼吸，Ready 好先撳</p>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      // 🎙️ 正在錄音及倒數中
+      c.innerHTML = `
+        <div class="fade-in pt-4 pb-4">
+          ${timerUI('speak')}
+          <div class="bg-cloud rounded-2xl border border-mint/30 p-5 mb-4 relative transition-opacity ${p2IsPaused ? 'opacity-60' : 'opacity-100'}">
+            <div class="text-sm text-slate font-medium mb-2">你的筆記（已鎖定）</div>
+            <div class="text-base bg-sand/20 rounded-xl p-4 text-slate whitespace-pre-wrap">${p2SavedNotes || '(無筆記)'}</div>
+            <div class="mt-6 text-center">
+              <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto border-4 ${p2IsPaused ? 'border-red-200' : 'border-red-400 animate-pulse'}">
+                <i data-lucide="${p2IsPaused ? 'pause' : 'mic'}" class="w-10 h-10 ${p2IsPaused ? 'text-red-300' : 'text-red-500'}"></i>
+              </div>
+              <p class="text-base font-medium mt-3 ${p2IsPaused ? 'text-slate' : 'text-red-500'}">${p2IsPaused ? '錄音已暫停' : '正在錄音中...'}</p>
+            </div>
+          </div>
+          <div class="mb-4"><label for="p2-answer" class="block text-sm font-medium text-slate mb-2">回答記錄 (可選)</label><textarea id="p2-answer" rows="3" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink text-base resize-none" placeholder="記錄你的回答要點..."></textarea></div>
+          <button onclick="finishSpeakingEarly()" class="w-full py-3.5 rounded-xl bg-ink text-white font-semibold text-base btn-press">提早完成錄音</button>
+        </div>
+      `;
+    }
+ } else if (p2State === 'done') {
+    let audioPlayerHtml = audioUrl ? `
+      <div class="bg-cloud rounded-2xl border border-mint/30 p-4 mb-5 text-left slide-up">
+        <p class="text-sm font-bold text-mint mb-2">🎧 聽返你嘅錄音反思：</p>
+        <audio controls src="${audioUrl}" class="w-full mb-3"></audio>
+        <button onclick="retrySpeaking()" class="w-full py-2.5 rounded-xl border-2 border-mint/50 bg-mint/10 text-mint text-sm font-semibold flex items-center justify-center gap-1.5 btn-press">
+          <i data-lucide="rotate-ccw" class="w-5 h-5"></i> 對呢次唔滿意？重新錄音 (Take 2)
+        </button>
+        <p class="text-xs text-slate mt-3">提示：Take 2 通常流暢度會大增！留意自己有冇不必要嘅停頓或 "Umm"。</p>
+      </div>
+    ` : `<p class="text-sm text-slate mb-5">無法存取錄音權限，未有錄音紀錄。</p>`;
+
+    c.innerHTML = `
+      <div class="fade-in pt-8 pb-4 text-center">
+        <div class="w-20 h-20 bg-mint/10 rounded-full flex items-center justify-center mx-auto mb-5"><i data-lucide="check-circle" class="w-10 h-10 text-mint"></i></div>
+        <h3 class="font-bold text-2xl mb-2">完成！</h3>
+        <p class="text-base text-slate mb-6">你已完成這個 Part 2 練習</p>
+        
+        ${audioPlayerHtml}
+
+        <div class="mb-5 text-left">
+          <label for="p2-answer" class="block text-sm font-medium text-slate mb-2">反思筆記 (可選)</label>
+          <textarea id="p2-answer" rows="3" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink text-base resize-none" placeholder="記錄你覺得可以改善嘅字眼..."></textarea>
+        </div>
+
+        <button onclick="saveP2Answer()" class="w-full py-3.5 rounded-xl bg-mint text-white font-semibold text-base btn-press mb-4"><i data-lucide="save" class="w-5 h-5 inline mr-1"></i>儲存反思與筆記</button>
+        <button onclick="p2State='idle';p2Item=null;renderSpeakingP2()" class="w-full py-3 rounded-xl border border-sand text-slate text-base font-medium btn-press">下一題</button>
+      </div>
+    `;
+  }
+  lucide.createIcons();
+}
+
+// 🕹️ 控制器邏輯
+
+// 新增一個小幫手：每次撳掣前，先自動暫存打緊嘅筆記
+function saveCurrentP2Notes() {
+  const notesEl = document.getElementById('p2-notes');
+  if (notesEl) p2SavedNotes = notesEl.value;
+}
+
+function toggleP2Lock() { 
+  saveCurrentP2Notes(); // 刷新畫面前先暫存筆記
+  p2TimerUnlocked = !p2TimerUnlocked; 
+  renderSpeakingP2(); 
+}
+
+function toggleP2Pause() {
+  saveCurrentP2Notes(); // 刷新畫面前先暫存筆記
+  p2IsPaused = !p2IsPaused;
+  // 如果處於錄音中，同步暫停/恢復 MediaRecorder
+  if (p2State === 'speaking' && mediaRecorder) {
+    if (p2IsPaused && mediaRecorder.state === 'recording') mediaRecorder.pause();
+    else if (!p2IsPaused && mediaRecorder.state === 'paused') mediaRecorder.resume();
+  }
+  renderSpeakingP2();
+}
+
+function resetP2Timer(maxTime) {
+  saveCurrentP2Notes(); // 刷新畫面前先暫存筆記
+  p2TimeLeft = maxTime; p2IsPaused = false; p2TimerUnlocked = false;
+  if (p2State === 'speaking') {
+    stopRecording();
+    p2IsRecordingStarted = false; // 退回「等待手動撳掣」畫面
+  }
+  renderSpeakingP2();
+}
+// ⏱️ 流程切換邏輯
+function startP2Prep() {
+  p2State = 'prep'; p2TimeLeft = 60; p2TimerUnlocked = false; p2IsPaused = false;
+  renderSpeakingP2(); runTimer();
+}
+
+function skipPrepAndSpeak() {
+  const notesEl = document.getElementById('p2-notes'); 
+  if (notesEl) p2SavedNotes = notesEl.value; // 儲存準備筆記
+  
+  p2State = 'speaking'; p2TimeLeft = 120; 
+  p2IsRecordingStarted = false; p2TimerUnlocked = false; p2IsPaused = false;
+  
+  if (timerInterval) clearInterval(timerInterval); // 停止 prep 計時器
+  renderSpeakingP2(); // 進入過場畫面
+}
+
+// 🔄 新增：重新錄音邏輯 (Take 2)
+function retrySpeaking() {
+  // 將狀態重置返去 120 秒「等待手動撳掣」嘅畫面
+  p2State = 'speaking'; 
+  p2TimeLeft = 120; 
+  p2IsRecordingStarted = false; 
+  p2TimerUnlocked = false; 
+  p2IsPaused = false;
+  
+  // 清空舊錄音資料
+  audioUrl = null;
+  audioChunks = [];
+  
+  // 清除任何可能行緊嘅計時器
+  if (timerInterval) clearInterval(timerInterval);
+  
+  // 重新渲染畫面
+  renderSpeakingP2();
+}
+
+function startRealSpeaking() {
+  p2IsRecordingStarted = true;
+  renderSpeakingP2();
+  startRecording();
+  runTimer();
+}
+
+function finishSpeakingEarly() {
+  if (timerInterval) clearInterval(timerInterval);
+  stopRecording();
+  p2State = 'done';
+  renderSpeakingP2();
+}
+
+function runTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (p2IsPaused) return; // 暫停時不倒數
+    p2TimeLeft--; 
+    const el = document.getElementById('p2-timer'); 
+    if (el) el.textContent = p2TimeLeft + 's';
+    
+    if (p2TimeLeft <= 0) {
+      if (p2State === 'prep') skipPrepAndSpeak();
+      else if (p2State === 'speaking') finishSpeakingEarly();
+    }
+  }, 1000);
+}
+
+// 🎙️ 錄音核心功能
+async function startRecording() {
+  audioChunks = [];
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+      audioUrl = URL.createObjectURL(audioBlob);
+      if (p2State === 'done') renderSpeakingP2(); 
+    };
+    mediaRecorder.start();
+  } catch (err) {
+    console.error("無法存取咪高峰:", err);
+    showToast('無法存取咪高峰，請檢查瀏覽器權限');
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(track => track.stop()); // 釋放咪高峰權限
+  }
+}
+
+function saveP2Answer() {
+  const ans = document.getElementById('p2-answer')?.value?.trim();
+  saveAnswer(p2Item.id, ans || '', 'speaking', 'p2', { notes: p2SavedNotes });
+  p2State = 'idle'; p2Item = null; audioUrl = null;
+}
+
+// ============ SPEAKING P3 ============
+function renderSpeakingP3() {
+  const c = document.getElementById('content');
+  const key = 'speaking-p3';
+  if (!currentQuestionIndex[key]) currentQuestionIndex[key] = 0;
+  const item = SPEAKING_P3_BANK[currentQuestionIndex[key]];
+  const existing = getAnswer(item.id);
+  c.innerHTML = `
+    <div class="fade-in pt-4 pb-4">
+      <div class="flex justify-between items-center mb-4">
+        <span class="text-sm bg-mint/10 text-mint px-3 py-1 rounded-full font-medium">Part 3 (${currentQuestionIndex[key] + 1}/${SPEAKING_P3_BANK.length})</span>
+        <button onclick="navigate('speaking-p3-all')" class="text-sm text-accent font-medium btn-press">全部題目 →</button>
+      </div>
+      <div class="bg-cloud rounded-2xl border border-sand/50 p-5 mb-4">
+        <p class="text-xl font-semibold mb-4">${item.question}</p>
+        <div class="bg-sand/30 rounded-xl p-4">
+          <div class="text-sm text-slate mb-1">🧠 思考方向</div>
+          <p class="text-sm text-slate">${item.depth}</p>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label for="sp3-answer" class="block text-sm font-medium text-slate mb-2">你的回答</label>
+        <textarea id="sp3-answer" rows="5" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink text-base resize-none" placeholder="寫下你的深度回答...">${existing ? existing.user_answer : ''}</textarea>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="saveAnswer('${item.id}', document.getElementById('sp3-answer').value.trim(), 'speaking', 'p3')" class="flex-1 py-3.5 rounded-xl bg-mint text-white font-semibold text-base btn-press"><i data-lucide="save" class="w-5 h-5 inline mr-1"></i>儲存</button>
+        <button onclick="toggleStar('${item.id}','speaking','p3').then(()=>renderSpeakingP3())" class="w-14 h-14 rounded-xl border ${isStarred(item.id)?'border-accent bg-accent/10':'border-sand'} flex items-center justify-center btn-press"><i data-lucide="star" class="w-6 h-6 ${isStarred(item.id)?'text-accent':'text-slate'}"></i></button>
+      </div>
+      <div class="flex gap-2 mt-4">
+        <button onclick="prevQuestion('speaking-p3', ${SPEAKING_P3_BANK.length})" class="flex-1 py-3 rounded-xl border border-sand text-slate text-sm font-medium btn-press"><i data-lucide="chevron-left" class="w-4 h-4 inline mr-1"></i>上一題</button>
+        <button onclick="randomQuestion('speaking-p3', ${SPEAKING_P3_BANK.length})" class="flex-1 py-3 rounded-xl border border-sand text-slate text-sm font-medium btn-press"><i data-lucide="shuffle" class="w-4 h-4 inline mr-1"></i>隨機</button>
+        <button onclick="nextQuestion('speaking-p3', ${SPEAKING_P3_BANK.length})" class="flex-1 py-3 rounded-xl border border-sand text-slate text-sm font-medium btn-press">下一題<i data-lucide="chevron-right" class="w-4 h-4 inline ml-1"></i></button>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+// ============ ALL MODE ============
+function renderAllMode(type, subtype, bank, labelFn) {
+  const c = document.getElementById('content');
+  let items = bank.map(item => ({ ...item, isBank: true }));
+  const customItems = allData.filter(d => d.username === currentUser && d.type === type && d.subtype === subtype && d.custom);
+  customItems.forEach(ci => { items.push({ id: ci.question_id, label: ci.user_answer + (ci.notes ? ` — ${ci.notes}` : ''), isBank: false, record: ci }); });
+
+  c.innerHTML = `
+    <div class="fade-in pt-4 pb-4">
+      <p class="text-sm text-slate mb-3">${items.length} 個項目</p>
+      <div class="space-y-3">
+        ${items.map((item, idx) => {
+          const existing = getAnswer(item.id);
+          const starred = existing && existing.starred;
+          const hasAnswer = existing && existing.user_answer;
+          const label = item.isBank ? labelFn(item) : item.label;
+          return `
+            <div class="bg-cloud rounded-xl border border-sand/50 p-4 flex items-start gap-3 cursor-pointer hover:border-accent/30" onclick="editFromAllMode('${item.id}', '${type}', '${subtype}', ${item.isBank})">
+              <div class="flex-1 min-w-0">
+                <p class="text-base leading-relaxed ${hasAnswer ? '' : 'text-slate'}">${label}</p>
+                ${hasAnswer ? `<p class="text-sm text-mint mt-2 truncate">✓ 已作答</p>` : ''}
+              </div>
+              <div class="flex items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
+                <button onclick="toggleStar('${item.id}','${type}','${subtype}').then(()=>renderCurrentScreen())" class="w-10 h-10 rounded-lg flex items-center justify-center btn-press ${starred ? 'bg-accent/10' : ''}">
+                  <i data-lucide="star" class="w-5 h-5 ${starred ? 'text-accent' : 'text-slate/30'}"></i>
+                </button>
+                ${!item.isBank && item.record ? `<button onclick="deleteRecord(allData.find(d=>d.question_id==='${item.id}'&&d.username===currentUser))" class="w-10 h-10 rounded-lg flex items-center justify-center btn-press"><i data-lucide="trash-2" class="w-5 h-5 text-red-400"></i></button>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+function editFromAllMode(qid, type, subtype, isBank) {
+  if (type === 'writing' && subtype === 'paraphrase') { currentQuestionIndex['writing-paraphrase'] = PARAPHRASE_BANK.findIndex(i => i.id === qid); renderParaphrase(); } 
+  else if (type === 'writing' && subtype === 'grammar') { currentQuestionIndex['writing-grammar'] = GRAMMAR_BANK.findIndex(i => i.id === qid); renderGrammar(); } 
+  else if (type === 'writing' && subtype === 'vocab') { const idx = VOCAB_BANK.findIndex(i => i.id === qid); currentQuestionIndex['writing-vocab'] = idx >= 0 ? idx : 0; renderVocab(); } 
+  else if (type === 'writing' && subtype === 'skeleton') { currentQuestionIndex['writing-skeleton'] = SKELETON_BANK.findIndex(i => i.id === qid); renderSkeleton(); } 
+  else if (type === 'speaking' && subtype === 'p1') { currentQuestionIndex['speaking-p1'] = SPEAKING_P1_BANK.findIndex(i => i.id === qid); renderSpeakingP1(); } 
+  else if (type === 'speaking' && subtype === 'p3') { currentQuestionIndex['speaking-p3'] = SPEAKING_P3_BANK.findIndex(i => i.id === qid); renderSpeakingP3(); }
+}
+
+// ============ REVIEW ============
+// 💡 全域變數：控制溫習面板狀態
+let isFlashcardMode = false;
+let currentReviewFilter = 'all';
+let currentReviewSort = 'newest';
+
+function toggleReviewMode(isFlash) { isFlashcardMode = isFlash; renderCurrentScreen(); }
+function changeReviewFilter(val) { currentReviewFilter = val; renderCurrentScreen(); }
+function changeReviewSort(val) { currentReviewSort = val; renderCurrentScreen(); }
+
+// 🎛️ 共用 UI：控制面板 (模式、篩選、排序)
+function getReviewControlsHtml(availableSubtypes) {
+  const subtypeLabels = { paraphrase:'改寫訓練', grammar:'Grammar', vocab:'Vocab', skeleton:'骨架建立', p1:'Part 1 Practice', p2:'Part 2 Brainstorm', p3:'Part 3 Deep Q' };
+  
+  let filterOptions = `<option value="all">全部類別</option>`;
+  availableSubtypes.forEach(sub => {
+     const label = subtypeLabels[sub] || sub;
+     filterOptions += `<option value="${sub}" ${currentReviewFilter === sub ? 'selected' : ''}>${label}</option>`;
+  });
+
+  return `
+    <div class="flex flex-col gap-3 mb-6 bg-cloud p-3.5 rounded-2xl border border-sand/50 shadow-sm slide-up">
+      <!-- 模式切換 -->
+      <div class="flex justify-between items-center">
+        <span class="text-sm font-bold text-slate pl-1">溫習模式</span>
+        <div class="flex gap-1 bg-sand/30 p-1 rounded-lg">
+          <button onclick="toggleReviewMode(false)" class="px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${!isFlashcardMode ? 'bg-white shadow-sm text-ink' : 'text-slate'}">📋 列表</button>
+          <button onclick="toggleReviewMode(true)" class="px-4 py-1.5 rounded-md text-sm font-semibold transition-colors flex items-center gap-1.5 ${isFlashcardMode ? 'bg-accent text-white shadow-sm' : 'text-slate'}"><i data-lucide="zap" class="w-4 h-4"></i> 閃卡</button>
+        </div>
+      </div>
+      <hr class="border-sand/50">
+      <!-- 篩選與排序 -->
+      <div class="flex gap-2">
+        <div class="flex-1">
+          <select onchange="changeReviewFilter(this.value)" class="w-full px-3 py-2.5 rounded-xl bg-sand/20 border border-sand text-sm font-medium text-ink focus:outline-none focus:border-accent">
+            ${filterOptions}
+          </select>
+        </div>
+        <div class="flex-1">
+          <select onchange="changeReviewSort(this.value)" class="w-full px-3 py-2.5 rounded-xl bg-sand/20 border border-sand text-sm font-medium text-ink focus:outline-none focus:border-accent">
+            <option value="newest" ${currentReviewSort === 'newest' ? 'selected' : ''}>最新加入 ↓</option>
+            <option value="oldest" ${currentReviewSort === 'oldest' ? 'selected' : ''}>最舊加入 ↑</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderReview() {
+  const c = document.getElementById('content');
+  const starred = allData.filter(d => d.username === currentUser && d.starred);
+  const writingData = allData.filter(d => d.username === currentUser && d.type === 'writing' && d.user_answer);
+  const speakingData = allData.filter(d => d.username === currentUser && d.type === 'speaking' && d.user_answer);
+
+  // 💡 點擊進入分類時，自動 Reset 篩選條件，確保 UX 順暢
+  c.innerHTML = `
+    <div class="fade-in pt-4 pb-4">
+      <div class="space-y-3">
+        <button onclick="currentReviewFilter='all'; currentReviewSort='newest'; navigate('review-starred')" class="w-full bg-cloud rounded-2xl p-4 border border-sand/50 flex items-center gap-4 card-hover text-left">
+          <div class="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0"><i data-lucide="star" class="w-6 h-6 text-accent"></i></div>
+          <div class="flex-1"><div class="font-semibold text-base">⭐ 收藏內容</div><div class="text-sm text-slate mt-0.5">${starred.length} 個項目</div></div>
+          <i data-lucide="chevron-right" class="w-6 h-6 text-slate/40"></i>
+        </button>
+        <button onclick="currentReviewFilter='all'; currentReviewSort='newest'; navigate('review-writing')" class="w-full bg-cloud rounded-2xl p-4 border border-sand/50 flex items-center gap-4 card-hover text-left">
+          <div class="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0"><span class="text-2xl">📝</span></div>
+          <div class="flex-1"><div class="font-semibold text-base">Writing 溫習</div><div class="text-sm text-slate mt-0.5">${writingData.length} 個答案</div></div>
+          <i data-lucide="chevron-right" class="w-6 h-6 text-slate/40"></i>
+        </button>
+        <button onclick="currentReviewFilter='all'; currentReviewSort='newest'; navigate('review-speaking')" class="w-full bg-cloud rounded-2xl p-4 border border-sand/50 flex items-center gap-4 card-hover text-left">
+          <div class="w-12 h-12 rounded-xl bg-mint/10 flex items-center justify-center flex-shrink-0"><span class="text-2xl">🗣️</span></div>
+          <div class="flex-1"><div class="font-semibold text-base">Speaking 溫習</div><div class="text-sm text-slate mt-0.5">${speakingData.length} 個答案</div></div>
+          <i data-lucide="chevron-right" class="w-6 h-6 text-slate/40"></i>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderReviewStarred() {
+  const c = document.getElementById('content');
+  let data = allData.filter(d => d.username === currentUser && d.starred);
+  
+  if (data.length === 0) {
+    c.innerHTML = `<div class="fade-in pt-12 text-center"><p class="text-base text-slate">暫無收藏內容</p><p class="text-sm text-slate/60 mt-2">按 ⭐ 收藏你想溫習的題目</p></div>`; return;
+  }
+
+  // 提取所有存在嘅類別作 Filter 選項
+  const availableSubtypes = [...new Set(data.map(d => d.subtype || 'other'))];
+  
+  // 執行篩選
+  if (currentReviewFilter !== 'all') {
+    data = data.filter(d => (d.subtype || 'other') === currentReviewFilter);
+  }
+  
+  // 執行排序
+  data.sort((a,b) => {
+    if (currentReviewSort === 'newest') return (b.timestamp||'').localeCompare(a.timestamp||'');
+    else return (a.timestamp||'').localeCompare(b.timestamp||'');
+  });
+
+  const controlsHtml = getReviewControlsHtml(availableSubtypes);
+  let contentHtml = data.length > 0 ? `<div class="space-y-3">${renderReviewCards(data)}</div>` : `<div class="pt-8 text-center text-slate text-sm">此類別暫無收藏內容</div>`;
+
+  c.innerHTML = `<div class="fade-in pt-4 pb-4">${controlsHtml}${contentHtml}</div>`;
+  lucide.createIcons();
+}
+
+function renderReviewType(type) {
+  const c = document.getElementById('content');
+  let data = allData.filter(d => d.username === currentUser && d.type === type && d.user_answer);
+  if (data.length === 0) { c.innerHTML = `<div class="fade-in pt-12 text-center"><p class="text-base text-slate">暫無${type === 'writing' ? 'Writing' : 'Speaking'}記錄</p></div>`; return; }
+  
+  // 提取所有存在嘅類別作 Filter 選項
+  const availableSubtypes = [...new Set(data.map(d => d.subtype || 'other'))];
+
+  // 執行篩選
+  if (currentReviewFilter !== 'all') {
+    data = data.filter(d => (d.subtype || 'other') === currentReviewFilter);
+  }
+
+  const controlsHtml = getReviewControlsHtml(availableSubtypes);
+  let html = `<div class="fade-in pt-4 pb-4">${controlsHtml}`;
+
+  if (data.length === 0) {
+    html += `<div class="pt-8 text-center text-slate text-sm">此類別暫無記錄</div>`;
+  } else {
+    // 依類別分組顯示
+    const groups = {};
+    data.forEach(d => { const sub = d.subtype || 'other'; if (!groups[sub]) groups[sub] = []; groups[sub].push(d); });
+    const subtypeLabels = { paraphrase:'改寫訓練', grammar:'Grammar', vocab:'Vocab', skeleton:'骨架建立', p1:'Part 1 Practice', p2:'Part 2 Brainstorm', p3:'Part 3 Deep Q' };
+    const subtypeIcons = { paraphrase: '🔄', grammar: '📐', vocab: '📖', skeleton: '🏗️', p1: '💬', p2: '⏱️', p3: '🧠' };
+
+    for (const [sub, items] of Object.entries(groups)) {
+      // 執行群組內排序
+      const sorted = items.sort((a,b) => {
+        if (currentReviewSort === 'newest') return (b.timestamp||'').localeCompare(a.timestamp||'');
+        else return (a.timestamp||'').localeCompare(b.timestamp||'');
+      });
+      const icon = subtypeIcons[sub] || '📌';
+      const label = subtypeLabels[sub] || sub;
+      html += `
+        <div class="mb-6">
+          <div class="flex items-center gap-2 px-1 py-2 mb-3">
+            <span class="text-2xl">${icon}</span><h4 class="text-base font-semibold text-ink">${label}</h4><span class="text-sm bg-sand/50 text-slate px-3 py-1 rounded-full">${sorted.length}</span>
+          </div>
+          <div class="space-y-3">${renderReviewCards(sorted)}</div>
+        </div>
+      `;
+    }
+  }
+  html += '</div>';
+  c.innerHTML = html;
+  lucide.createIcons();
+}
+
+function renderReviewCards(items) {
+  // 1. 建立一個完整資料庫 mapping，方便攞返所有細節 (rule, example 等等)
+  const fullBanks = {
+    ...Object.fromEntries(PARAPHRASE_BANK.map(i=>[i.id, i])),
+    ...Object.fromEntries(GRAMMAR_BANK.map(i=>[i.id, i])),
+    ...Object.fromEntries(VOCAB_BANK.map(i=>[i.id, i])),
+    ...Object.fromEntries(SKELETON_BANK.map(i=>[i.id, i])),
+    ...Object.fromEntries(SPEAKING_P1_BANK.map(i=>[i.id, i])),
+    ...Object.fromEntries(SPEAKING_P2_BANK.map(i=>[i.id, i])),
+    ...Object.fromEntries(SPEAKING_P3_BANK.map(i=>[i.id, i]))
+  };
+
+  return items.map(item => {
+    const bankItem = fullBanks[item.question_id] || {};
+    
+    // 2. 針對唔同題型，客製化顯示題目 (qText) 同埋補充資訊 (extraInfo)
+    let qText = item.question_id;
+    let extraInfo = '';
+
+    if (item.subtype === 'paraphrase') {
+      qText = bankItem.original || qText;
+    } else if (item.subtype === 'grammar') {
+      qText = bankItem.title ? `${bankItem.title} — ${bankItem.practice}` : qText;
+      // 💡 加入 Grammar 專屬嘅 Rule 同 Example
+      extraInfo = `
+        <div class="mt-3 mb-2 bg-accent/5 rounded-xl p-3 border border-accent/10">
+          <div class="text-xs font-semibold text-accent mb-1">規則</div>
+          <p class="text-sm text-slate mb-2">${bankItem.rule || '(無)'}</p>
+          <div class="text-xs font-semibold text-mint mb-1">範例</div>
+          <p class="text-sm text-slate italic">${bankItem.example || '(無)'}</p>
+        </div>
+      `;
+    } else if (item.subtype === 'vocab') {
+      qText = bankItem.word ? `${bankItem.word} (${bankItem.meaning})` : qText;
+    } else if (item.subtype === 'skeleton') {
+      qText = bankItem.topic ? bankItem.topic.substring(0,80) + '...' : qText;
+    } else if (item.subtype === 'p1' || item.subtype === 'p3') {
+      qText = bankItem.question || qText;
+    } else if (item.subtype === 'p2') {
+      qText = bankItem.cue ? bankItem.cue.substring(0,80) + '...' : qText;
+    }
+
+    const time = item.timestamp ? new Date(item.timestamp).toLocaleDateString('zh-HK',{month:'short',day:'numeric'}) : '';
+    
+    // 3. 處理答案預覽 (解開 Skeleton 嘅 JSON)
+    let answerPreview = item.user_answer || '';
+    if (item.subtype === 'skeleton') { 
+      try { 
+        const p = JSON.parse(answerPreview); 
+        answerPreview = `[主旨] ${p.thesis || '(未填寫)'}\n[Topic 1] ${p.topic1 || '(未填寫)'}\n[Topic 2] ${p.topic2 || '(未填寫)'}\n[總結] ${p.topic3 || '(未填寫)'}`; 
+      } catch(e) {} 
+    }
+    
+    const bid = item.__backendId || item.question_id;
+
+    // 4. 生成 Model Answer HTML
+    let modelHtml = '';
+    if (bankItem.model) {
+        const formattedModel = bankItem.model.split('\n').map(line => `<p class="mb-1 last:mb-0">${line}</p>`).join('');
+        modelHtml = `
+          <div class="mt-3 bg-mint/10 border border-mint/20 rounded-xl p-3">
+            <p class="text-xs font-bold text-mint mb-1 flex items-center gap-1"><i data-lucide="lightbulb" class="w-3 h-3"></i> 考官示範</p>
+            <div class="text-sm text-ink">${formattedModel}</div>
+          </div>
+        `;
+    }
+
+    // 5. 輸出最終 HTML (分為閃卡模式 / 列表模式)
+    if (isFlashcardMode) {
+      return `
+        <div class="bg-cloud rounded-xl border border-accent/40 shadow-sm p-4" id="review-${bid}">
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-slate leading-relaxed">${qText}</p>
+              ${extraInfo}
+            </div>
+            <span class="text-xs text-slate/50 flex-shrink-0 bg-sand/30 px-2 py-1 rounded-md">${time}</span>
+          </div>
+          
+          <button onclick="toggleFlashcard('${bid}')" id="flashcard-btn-${bid}" class="w-full py-3 mt-2 rounded-xl border border-sand bg-sand/30 text-slate text-sm font-semibold flex items-center justify-center gap-1.5 btn-press transition-colors duration-200">
+            <i data-lucide="eye" class="w-4 h-4"></i> 顯示答案 (Active Recall)
+          </button>
+
+          <div id="review-display-${bid}" class="hidden mt-4 slide-up">
+            <div class="bg-sand/20 rounded-xl p-3 border border-sand/50">
+              <p class="text-xs font-bold text-slate mb-1 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> 你的答案</p>
+              <p class="text-sm text-ink whitespace-pre-wrap">${answerPreview}</p>
+            </div>
+            ${modelHtml}
+          </div>
+
+          <div id="review-edit-${bid}" class="hidden mt-3 slide-up">
+            <textarea id="review-textarea-${bid}" rows="4" class="w-full px-4 py-3 rounded-lg bg-cream border border-sand text-ink text-base resize-none mb-3">${item.user_answer || ''}</textarea>
+            <div class="flex gap-2">
+              <button onclick="saveReviewEdit('${bid}')" class="flex-1 py-2.5 rounded-lg bg-accent text-white text-sm font-semibold btn-press">儲存更新</button>
+              <button onclick="cancelReviewEdit('${bid}')" class="py-2.5 px-4 rounded-lg border border-sand text-sm text-slate btn-press">取消</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 mt-4 pt-3 border-t border-sand/30">
+            <button onclick="toggleStar('${item.question_id}','${item.type}','${item.subtype}')" class="flex items-center gap-1.5 text-sm ${item.starred?'text-accent':'text-slate/60'} btn-press px-3 py-1.5 rounded-lg"><i data-lucide="star" class="w-4 h-4"></i>${item.starred?'已收藏':'收藏'}</button>
+            <button onclick="startReviewEdit('${bid}')" class="flex items-center gap-1.5 text-sm text-slate/60 btn-press px-3 py-1.5 rounded-lg"><i data-lucide="edit" class="w-4 h-4"></i>修改</button>
+            <button onclick="confirmDeleteReview('${bid}')" class="flex items-center gap-1.5 text-sm text-red-400/80 btn-press px-3 py-1.5 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i>刪除</button>
+          </div>
+          <div id="review-confirm-${bid}" class="hidden mt-3 p-3 bg-red-50 rounded-lg flex items-center gap-3">
+            <span class="text-sm text-red-500 flex-1 font-medium">確認刪除？</span>
+            <button onclick="executeDeleteReview('${bid}')" class="text-sm bg-red-500 text-white px-4 py-2 rounded-lg btn-press font-medium">刪除</button>
+            <button onclick="document.getElementById('review-confirm-${bid}').classList.add('hidden')" class="text-sm border border-red-200 text-red-400 px-4 py-2 rounded-lg btn-press bg-white">取消</button>
+          </div>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="bg-cloud rounded-xl border border-sand/50 p-4" id="review-${bid}">
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <div class="flex-1">
+              <p class="text-sm text-slate leading-relaxed">${qText}</p>
+              ${extraInfo}
+            </div>
+            <span class="text-xs text-slate/50 flex-shrink-0">${time}</span>
+          </div>
+          <div id="review-display-${bid}"><p class="text-base whitespace-pre-wrap mt-2">${answerPreview}</p></div>
+          <div id="review-edit-${bid}" class="hidden mt-3">
+            <textarea id="review-textarea-${bid}" rows="3" class="w-full px-4 py-3 rounded-lg bg-cream border border-sand text-ink text-base resize-none mb-3">${item.user_answer || ''}</textarea>
+            <div class="flex gap-2">
+              <button onclick="saveReviewEdit('${bid}')" class="flex-1 py-2.5 rounded-lg bg-accent text-white text-sm font-semibold btn-press">儲存</button>
+              <button onclick="cancelReviewEdit('${bid}')" class="py-2.5 px-4 rounded-lg border border-sand text-sm text-slate btn-press">取消</button>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 mt-3 pt-3 border-t border-sand/30">
+            <button onclick="toggleStar('${item.question_id}','${item.type}','${item.subtype}')" class="flex items-center gap-1.5 text-sm ${item.starred?'text-accent':'text-slate/60'} btn-press px-3 py-1.5 rounded-lg"><i data-lucide="star" class="w-4 h-4"></i>${item.starred?'已收藏':'收藏'}</button>
+            <button onclick="startReviewEdit('${bid}')" class="flex items-center gap-1.5 text-sm text-slate/60 btn-press px-3 py-1.5 rounded-lg"><i data-lucide="edit" class="w-4 h-4"></i>修改</button>
+            <button onclick="confirmDeleteReview('${bid}')" class="flex items-center gap-1.5 text-sm text-red-400/80 btn-press px-3 py-1.5 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i>刪除</button>
+          </div>
+          <div id="review-confirm-${bid}" class="hidden mt-3 p-3 bg-red-50 rounded-lg flex items-center gap-3">
+            <span class="text-sm text-red-500 flex-1">確認刪除？</span>
+            <button onclick="executeDeleteReview('${bid}')" class="text-sm bg-red-500 text-white px-4 py-2 rounded-lg btn-press">刪除</button>
+            <button onclick="document.getElementById('review-confirm-${bid}').classList.add('hidden')" class="text-sm border border-red-200 text-red-400 px-4 py-2 rounded-lg btn-press">取消</button>
+          </div>
+        </div>
+      `;
+    }
+  }).join('');
+}
+function toggleFlashcard(bid) {
+  const displayDiv = document.getElementById('review-display-' + bid);
+  const btn = document.getElementById('flashcard-btn-' + bid);
+  
+  if (displayDiv.classList.contains('hidden')) {
+    displayDiv.classList.remove('hidden');
+    btn.innerHTML = `<i data-lucide="eye-off" class="w-4 h-4"></i> 隱藏答案`;
+    btn.classList.replace('bg-sand/30', 'bg-sand/70');
+  } else {
+    displayDiv.classList.add('hidden');
+    btn.innerHTML = `<i data-lucide="eye" class="w-4 h-4"></i> 顯示答案 (Active Recall)`;
+    btn.classList.replace('bg-sand/70', 'bg-sand/30');
+  }
+  lucide.createIcons();
+}
+
+function startReviewEdit(bid) { 
+  document.getElementById('review-display-'+bid).classList.remove('hidden'); 
+  document.getElementById('review-display-'+bid).style.display = 'none'; 
+  const flashBtn = document.getElementById('flashcard-btn-'+bid);
+  if (flashBtn) flashBtn.style.display = 'none'; 
+  document.getElementById('review-edit-'+bid).classList.remove('hidden'); 
+}
+function cancelReviewEdit(bid) { 
+  document.getElementById('review-display-'+bid).style.display = 'block'; 
+  const flashBtn = document.getElementById('flashcard-btn-'+bid);
+  if (flashBtn) flashBtn.style.display = 'flex'; 
+  document.getElementById('review-edit-'+bid).classList.add('hidden'); 
+}
+async function saveReviewEdit(bid) {
+  const record = allData.find(d => (d.__backendId === bid || d.question_id === bid));
+  if (!record) return;
+  const val = document.getElementById('review-textarea-'+bid).value.trim();
+  const r = await window.dataSdk.update({ ...record, user_answer: val, timestamp: new Date().toISOString() });
+  if (r.isOk) { showToast('已更新 ✓'); renderCurrentScreen(); }
+}
+function confirmDeleteReview(bid) { document.getElementById('review-confirm-'+bid).classList.remove('hidden'); }
+async function executeDeleteReview(bid) {
+  const record = allData.find(d => (d.__backendId === bid || d.question_id === bid));
+  if (record) { await deleteRecord(record); renderCurrentScreen(); }
+}
+// ============ SETTINGS ============
+function renderSettings() {
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="fade-in pt-4 pb-4 space-y-3">
+      <div class="pt-4 text-center">
+        <p class="text-sm text-slate/60">IELTS 8.0 Study Hub v3.0 (極速版)</p>
+        <p class="text-xs text-slate/40 mt-1">Data powered by Google Sheets</p>
+      </div>
+    </div>
+  `;
+}
+
+// ============ LOGIN / NAVIGATION ============
+document.getElementById('login-btn').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('username-input').value.trim();
+  const pwd = document.getElementById('password-input').value.trim(); 
+  
+  if (!name || !pwd) { showToast('請輸入用戶名稱及密碼'); return; }
+  
+  const btn = document.getElementById('login-btn');
+  btn.textContent = '驗證中...';
+  btn.disabled = true;
+
+  try {
+    const hashedPassword = await hashPassword(pwd);
+    const loginRes = await fetch(GAS_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'login', user: name, password: hashedPassword }) 
+    });
+    const loginData = await loginRes.json();
+    
+    if (loginData.status === 'success') {
+      currentUser = name;
+      
+      // ✅ 記住登入狀態，下次免入密碼！
+      localStorage.setItem('ielts_currentUser', currentUser);
+      showToast('登入成功！');
+      
+      processCloudData(loginData.data);
+
+      document.getElementById('screen-login').classList.add('hidden');
+      document.getElementById('main-app').classList.remove('hidden');
+      document.getElementById('user-badge').textContent = name;
+      document.getElementById('password-input').value = ''; 
+      navigate('home');
+
+    } else {
+      showToast(loginData.message || '登入失敗，密碼錯誤');
+    }
+  } catch (err) {
+    showToast('網絡錯誤，請稍後再試');
+    console.error(err);
+  } finally {
+    btn.textContent = '開始學習';
+    btn.disabled = false;
+  }
+});
+
+// 新增 Enter 鍵直接登入邏輯
+document.getElementById('username-input').addEventListener('keydown', (e) => { 
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('password-input').focus(); } 
+});
+document.getElementById('password-input').addEventListener('keydown', (e) => { 
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('login-btn').click(); } 
+});
+
+document.getElementById('logout-btn').addEventListener('click', () => {
+  // 登出時清除自動登入狀態
+  localStorage.removeItem('ielts_currentUser');
+  currentUser = ''; currentScreen = 'home'; screenHistory = [];
+  if (timerInterval) clearInterval(timerInterval);
+  p2State = 'idle'; p2Item = null;
+  document.getElementById('main-app').classList.add('hidden'); document.getElementById('screen-login').classList.remove('hidden');
+  document.getElementById('username-input').value = '';
+});
+
+document.getElementById('back-btn').addEventListener('click', goBack);
+
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => { const t = tab.dataset.tab; screenHistory = []; navigate(t); });
+});
+
+lucide.createIcons();
+</script>
+ </body>
+</html>
