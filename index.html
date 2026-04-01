@@ -779,6 +779,7 @@ function renderSpeakingP2() {
     `;
   } else if (p2State === 'speaking') {
     if (!p2IsRecordingStarted) {
+      // ⏳ 過場畫面：等待用戶手動撳掣開始錄音
       c.innerHTML = `
         <div class="fade-in pt-4 pb-4">
           <div class="text-center mb-4"><div class="inline-flex items-center gap-2 bg-slate/10 text-slate px-4 py-2 rounded-full text-base font-semibold"><i data-lucide="mic" class="w-5 h-5"></i>即將開始回答 (120s)</div></div>
@@ -795,6 +796,7 @@ function renderSpeakingP2() {
         </div>
       `;
     } else {
+      // 🎙️ 正在錄音及倒數中
       c.innerHTML = `
         <div class="fade-in pt-4 pb-4">
           ${timerUI('speak')}
