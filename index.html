@@ -51,13 +51,17 @@
    </div>
 
    <div id="main-app" class="w-full h-full flex flex-col hidden">
-    <header class="flex-shrink-0 bg-cloud/80 backdrop-blur-sm border-b border-sand/50 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+   <header class="flex-shrink-0 bg-cloud/80 backdrop-blur-sm border-b border-sand/50 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
      <div id="header-left" class="flex items-center gap-2">
       <button id="back-btn" class="hidden w-9 h-9 rounded-xl bg-sand/50 flex items-center justify-center btn-press"> <i data-lucide="chevron-left" class="w-5 h-5"></i> </button>
       <h2 id="header-title" class="font-bold text-lg">首頁</h2>
      </div>
+     
      <div class="flex items-center gap-2">
       <span id="user-badge" class="text-sm bg-accent/10 text-accent px-3 py-1 rounded-full font-medium"></span> 
+      
+      <button id="admin-btn" onclick="navigate('admin')" class="hidden w-9 h-9 rounded-xl bg-sand/50 flex items-center justify-center btn-press"> <i data-lucide="shield" class="w-5 h-5 text-accent"></i> </button>
+      
       <button id="logout-btn" class="w-9 h-9 rounded-xl bg-sand/50 flex items-center justify-center btn-press"> <i data-lucide="log-out" class="w-5 h-5 text-slate"></i> </button>
      </div>
     </header>
@@ -214,6 +218,9 @@ async function initApp() {
     document.getElementById('screen-login').classList.add('hidden');
     document.getElementById('main-app').classList.remove('hidden');
     document.getElementById('user-badge').textContent = currentUser;
+const isAdmin = (currentUser === 'adming');
+    document.getElementById('admin-btn').classList.toggle('hidden', !isAdmin);
+
     navigate('home');
     
     try {
@@ -300,13 +307,13 @@ function updateNav() {
   const backBtn = document.getElementById('back-btn');
   const showBack = currentScreen !== 'home' && currentScreen !== 'writing' && currentScreen !== 'speaking' && currentScreen !== 'review' && currentScreen !== 'settings';
   backBtn.classList.toggle('hidden', !showBack); backBtn.style.display = showBack ? 'flex' : 'none';
-  const titles = { home: '首頁', writing: 'Writing 模組', speaking: 'Speaking 模組', review: '溫習', settings: '設定', 'writing-paraphrase': '改寫訓練', 'writing-grammar': 'Grammar', 'writing-vocab': 'Vocab Book', 'writing-skeleton': '骨架建立', 'speaking-p1': 'Part 1 Practice', 'speaking-p2': 'Part 2 Brainstorm', 'speaking-p3': 'Part 3 Deep Q', 'writing-paraphrase-all': '改寫訓練 - 全部', 'writing-grammar-all': 'Grammar - 全部', 'writing-vocab-all': 'Vocab Book - 全部', 'writing-skeleton-all': '骨架建立 - 全部', 'speaking-p1-all': 'Part 1 - 全部', 'speaking-p2-all': 'Part 2 - 全部', 'speaking-p3-all': 'Part 3 - 全部', 'review-starred': '收藏內容', 'review-writing': 'Writing 溫習', 'review-speaking': 'Speaking 溫習' };
+  const titles = { home: '首頁', admin: '🛡️ 系統後台', writing: 'Writing 模組', speaking: 'Speaking 模組', review: '溫習', settings: '設定', 'writing-paraphrase': '改寫訓練', 'writing-grammar': 'Grammar', 'writing-vocab': 'Vocab Book', 'writing-skeleton': '骨架建立', 'speaking-p1': 'Part 1 Practice', 'speaking-p2': 'Part 2 Brainstorm', 'speaking-p3': 'Part 3 Deep Q', 'writing-paraphrase-all': '改寫訓練 - 全部', 'writing-grammar-all': 'Grammar - 全部', 'writing-vocab-all': 'Vocab Book - 全部', 'writing-skeleton-all': '骨架建立 - 全部', 'speaking-p1-all': 'Part 1 - 全部', 'speaking-p2-all': 'Part 2 - 全部', 'speaking-p3-all': 'Part 3 - 全部', 'review-starred': '收藏內容', 'review-writing': 'Writing 溫習', 'review-speaking': 'Speaking 溫習' };
   document.getElementById('header-title').textContent = titles[currentScreen] || '首頁';
 }
 
 function renderCurrentScreen() {
   const renderers = {
-    home: renderHome, writing: renderWriting, speaking: renderSpeaking, review: renderReview, settings: renderSettings,
+    home: renderHome, admin: renderAdmin, writing: renderWriting, speaking: renderSpeaking, review: renderReview, settings: renderSettings,
     'writing-paraphrase': renderParaphrase, 'writing-grammar': renderGrammar, 'writing-vocab': renderVocab, 'writing-skeleton': renderSkeleton,
     'speaking-p1': renderSpeakingP1, 'speaking-p2': renderSpeakingP2, 'speaking-p3': renderSpeakingP3,
     'writing-paraphrase-all': () => renderAllMode('writing','paraphrase', PARAPHRASE_BANK, i => i.original),
@@ -1376,24 +1383,79 @@ async function executeDeleteReview(bid) {
   if (record) { await deleteRecord(record); renderCurrentScreen(); }
 }
 
-// ============ SETTINGS (加入同步按鈕) ============
+// ============ SETTINGS (普通用戶設定頁) ============
 function renderSettings() {
   const c = document.getElementById('content');
   c.innerHTML = `
     <div class="fade-in pt-4 pb-4 space-y-3">
       <div class="pt-4 text-center">
         <p class="text-sm text-slate/60">IELTS 8.0 Study Hub</p>
-      </div>
-      <div class="bg-cloud p-5 rounded-2xl border border-sand/50 mt-6">
-        <h3 class="font-bold text-ink mb-2">🔄 題庫同步中心</h3>
-        <p class="text-xs text-slate mb-4">喺 Google Sheet 加完新題目之後，撳呢個掣一鍵將資料拉落 Firebase，保持前台極速流暢。</p>
-        <button onclick="syncFromGoogleSheet()" id="sync-btn" class="w-full py-3.5 rounded-xl bg-[#0F9D58] text-white font-bold text-sm btn-press shadow-md flex items-center justify-center gap-2">
-          <i data-lucide="sheet" class="w-5 h-5"></i> 從 Google Sheet 同步最新題庫
-        </button>
+        <p class="text-xs text-slate/40 mt-1">Logged in as: ${currentUser}</p>
       </div>
     </div>
   `;
   lucide.createIcons();
+}
+
+// ============ ADMIN DASHBOARD (adming 專屬後台) ============
+function renderAdmin() {
+  // 雙重保安：如果登入名唔係 'adming'，即刻踢返去首頁
+  if (currentUser !== 'adming') { navigate('home'); return; }
+
+  const c = document.getElementById('content');
+  
+  // 計算系統數據
+  const wCount = PARAPHRASE_BANK.length + GRAMMAR_BANK.length + VOCAB_BANK.length + SKELETON_BANK.length;
+  const sCount = SPEAKING_P1_BANK.length + SPEAKING_P2_BANK.length + SPEAKING_P3_BANK.length;
+  const totalAns = allData.length;
+
+  c.innerHTML = `
+    <div class="fade-in pt-4 pb-4 space-y-4">
+      
+      <div class="grid grid-cols-3 gap-3 mb-2">
+        <div class="bg-cloud p-3 rounded-xl border border-sand/50 text-center">
+          <div class="text-xs text-slate mb-1">Writing 題庫</div>
+          <div class="text-xl font-bold text-ink">${wCount}</div>
+        </div>
+        <div class="bg-cloud p-3 rounded-xl border border-sand/50 text-center">
+          <div class="text-xs text-slate mb-1">Speaking 題庫</div>
+          <div class="text-xl font-bold text-ink">${sCount}</div>
+        </div>
+        <div class="bg-cloud p-3 rounded-xl border border-sand/50 text-center">
+          <div class="text-xs text-slate mb-1">全站答題數</div>
+          <div class="text-xl font-bold text-accent">${totalAns}</div>
+        </div>
+      </div>
+
+      <div class="bg-cloud p-5 rounded-2xl border border-sand/50 border-l-4 border-l-[#0F9D58] shadow-sm">
+        <h3 class="font-bold text-ink mb-2 flex items-center gap-2"><i data-lucide="refresh-cw" class="w-4 h-4 text-[#0F9D58]"></i> 題庫同步</h3>
+        <p class="text-xs text-slate mb-4">從 Google Sheet 拉取最新題目，覆蓋目前 Firebase 嘅題庫快取。</p>
+        <button onclick="syncFromGoogleSheet()" id="sync-btn" class="w-full py-3.5 rounded-xl bg-[#0F9D58] text-white font-bold text-sm btn-press flex items-center justify-center gap-2">
+          <i data-lucide="sheet" class="w-5 h-5"></i> 執行 Google Sheet 同步
+        </button>
+      </div>
+
+      <div class="bg-cloud p-5 rounded-2xl border border-sand/50 border-l-4 border-l-blue-500 shadow-sm">
+        <h3 class="font-bold text-ink mb-2 flex items-center gap-2"><i data-lucide="download-cloud" class="w-4 h-4 text-blue-500"></i> 數據備份</h3>
+        <p class="text-xs text-slate mb-4">將所有用戶嘅作答記錄、閃卡、反思筆記匯出為 JSON 檔案，妥善保存心血。</p>
+        <button onclick="exportData()" class="w-full py-3.5 rounded-xl bg-blue-50 text-blue-600 font-bold text-sm btn-press flex items-center justify-center gap-2 border border-blue-200">
+          <i data-lucide="download" class="w-5 h-5"></i> 匯出作答數據 (JSON)
+        </button>
+      </div>
+
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+// 數據備份小工具
+function exportData() {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allData));
+  const dlElem = document.createElement('a');
+  dlElem.setAttribute("href", dataStr);
+ dlElem.setAttribute("download", "IELTS_Backup_" + new Date().toISOString().split('T')[0] + ".json");
+  dlElem.click();
+  showToast('✅ 備份已下載！');
 }
 
 async function syncFromGoogleSheet() {
@@ -1424,49 +1486,69 @@ document.getElementById('login-btn').addEventListener('click', async (e) => {
   const name = document.getElementById('username-input').value.trim();
   const pwd = document.getElementById('password-input').value.trim(); 
   
-  if (!name || !pwd) { showToast('請輸入名稱及密碼'); return; }
+  if (!name || !pwd) { alert('請輸入名稱及密碼'); return; }
   
   const btn = document.getElementById('login-btn'); 
   btn.textContent = '驗證中...'; btn.disabled = true;
 
   try {
+    // 🕵️‍♂️ 偵探點 1：檢查是否用 file:/// 開啟 (會導致密碼加密死機)
+    if (!window.crypto || !window.crypto.subtle) {
+        alert("🛑 錯誤：你正在用電腦 Double-click 開啟 HTML 檔 (file:///)，瀏覽器基於安全理由封鎖咗密碼功能！\n\n👉 解決辦法：請將檔案 Upload 返上你個 GitHub Pages，用 https:// 網址開啟！");
+        return;
+    }
+
     const hashedPassword = await hashPassword(pwd);
-    
-    // 💡 改咗用 Firebase 登入！
     const userDoc = await db.collection('users').doc(name).get();
     
-    if (userDoc.exists && userDoc.data().password === hashedPassword) {
-      currentUser = name; 
-      localStorage.setItem('ielts_currentUser', currentUser); 
-      showToast('登入成功！');
-      
-const [wqSnap, sqSnap, wAnsSnap, sAnsSnap] = await Promise.all([
-  db.collection('Writing_Q').get(), 
-  db.collection('Speaking_Q').get(),
-  db.collection('Writing_Answers').where('username', '==', name).get(),
-  db.collection('Speaking_Answers').where('username', '==', name).get()
-]);
-
-const allAnswers = [
-  ...wAnsSnap.docs.map(d=>d.data()),
-  ...sAnsSnap.docs.map(d=>d.data())
-];
-
-processCloudData({
-  questions: [...wqSnap.docs.map(d=>d.data()), ...sqSnap.docs.map(d=>d.data())],
-  answers: allAnswers
-});
-
-      document.getElementById('screen-login').classList.add('hidden');
-      document.getElementById('main-app').classList.remove('hidden');
-      document.getElementById('user-badge').textContent = name;
-      document.getElementById('password-input').value = '';
-      navigate('home');
-    } else { 
-      showToast('登入失敗，用戶不存在或密碼錯誤'); 
+    // 🕵️‍♂️ 偵探點 2：檢查 Firebase 有無呢個用戶
+    if (!userDoc.exists) {
+        alert(`🛑 登入失敗：Firebase 入面搵唔到名為 "${name}" 嘅用戶！\n請去 Database 嘅 users collection 檢查下有無串錯字。`);
+        return;
     }
+    
+    // 🕵️‍♂️ 偵探點 3：檢查密碼啱唔啱
+    if (userDoc.data().password !== hashedPassword) {
+        alert(`🛑 登入失敗：密碼錯誤！\nDatabase 要求嘅係加密後嘅字串。如果你想用 "123456" 登入，請確保 Database 入面嘅 password 欄位係填：\n8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92`);
+        return;
+    }
+
+    currentUser = name; 
+    localStorage.setItem('ielts_currentUser', currentUser); 
+    
+    // 🕵️‍♂️ 偵探點 4：嘗試讀取題目同答案
+    const [wqSnap, sqSnap, wAnsSnap, sAnsSnap] = await Promise.all([
+      db.collection('Writing_Q').get(), 
+      db.collection('Speaking_Q').get(),
+      db.collection('Writing_Answers').where('username', '==', name).get(),
+      db.collection('Speaking_Answers').where('username', '==', name).get()
+    ]);
+
+    const allAnswers = [
+      ...wAnsSnap.docs.map(d=>({__backendId: d.id, ...d.data()})),
+      ...sAnsSnap.docs.map(d=>({__backendId: d.id, ...d.data()}))
+    ];
+
+    processCloudData({
+      questions: [...wqSnap.docs.map(d=>({id: d.id, ...d.data()})), ...sqSnap.docs.map(d=>({id: d.id, ...d.data()}))],
+      answers: allAnswers
+    });
+
+    document.getElementById('screen-login').classList.add('hidden');
+    document.getElementById('main-app').classList.remove('hidden');
+    document.getElementById('user-badge').textContent = name;
+
+    const isAdmin = (name === 'adming');
+    document.getElementById('admin-btn').classList.toggle('hidden', !isAdmin);
+
+    document.getElementById('password-input').value = '';
+    showToast('登入成功！');
+    navigate('home');
+
   } catch (err) { 
-    showToast('網絡錯誤'); console.error(err); 
+    // 🕵️‍♂️ 偵探點 5：終極錯誤捕捉
+    alert(`🛑 系統出現錯誤：\n${err.message}\n\n👉 如果上面寫住 "Missing or insufficient permissions"，代表你 Firebase 嘅 Security Rules 仲未改好！`);
+    console.error(err); 
   } finally { 
     btn.textContent = '登入'; btn.disabled = false; 
   }
