@@ -126,26 +126,38 @@ window.dataSdk = {
     localStorage.setItem('ielts_data', JSON.stringify(allData));
     dataHandler.onDataChanged(allData);
   },
+  _getCollection(type) {
+    // 根據資料類別回傳對應的 Collection 名稱
+    return type === 'writing' ? 'Writing_Answers' : 'Speaking_Answers';
+  },
   async create(record) {
     record.__backendId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-    allData.push(record); this._saveLocal(); 
-    db.collection('answers').doc(record.__backendId).set(record).catch(e=>console.log(e)); 
+    allData.push(record); 
+    this._saveLocal(); 
+    // 🚀 分流儲存
+    const col = this._getCollection(record.type);
+    db.collection(col).doc(record.__backendId).set(record).catch(e=>console.log(e)); 
     return { isOk: true };
   },
   async update(record) {
     const idx = allData.findIndex(d => d.question_id === record.question_id && d.username === currentUser);
-    if(idx > -1) allData[idx] = record; this._saveLocal(); 
-    db.collection('answers').doc(record.__backendId).update(record).catch(e=>console.log(e));
+    if(idx > -1) allData[idx] = record; 
+    this._saveLocal(); 
+    // 🚀 分流更新
+    const col = this._getCollection(record.type);
+    db.collection(col).doc(record.__backendId).update(record).catch(e=>console.log(e));
     return { isOk: true };
   },
   async delete(record) {
     allData = allData.filter(d => !(d.question_id === record.question_id && d.username === currentUser));
     this._saveLocal(); 
-    db.collection('answers').doc(record.__backendId).delete().catch(e=>console.log(e));
+    // 🚀 分流刪除
+    const col = this._getCollection(record.type);
+    db.collection(col).doc(record.__backendId).delete().catch(e=>console.log(e));
     return { isOk: true };
   }
 };
-
+ 
 // ============ 數據處理模組 (幫助背景同步) ============
 function processCloudData(cloudData) {
   const sheetQuestions = cloudData.questions || [];
@@ -204,15 +216,23 @@ async function initApp() {
     document.getElementById('user-badge').textContent = currentUser;
     navigate('home');
     
-    // 🚀 從 Firebase 獲取數據
     try {
-      const [wqSnap, sqSnap, ansSnap] = await Promise.all([
-        db.collection('Writing_Q').get(), db.collection('Speaking_Q').get(),
-        db.collection('answers').where('username', '==', currentUser).get()
+      // 🚀 同時讀取 Writing 同 Speaking 嘅答案 Collection
+      const [wqSnap, sqSnap, wAnsSnap, sAnsSnap] = await Promise.all([
+        db.collection('Writing_Q').get(), 
+        db.collection('Speaking_Q').get(),
+        db.collection('Writing_Answers').where('username', '==', currentUser).get(),
+        db.collection('Speaking_Answers').where('username', '==', currentUser).get()
       ]);
+
+      const allAnswers = [
+        ...wAnsSnap.docs.map(d=>({__backendId: d.id, ...d.data()})),
+        ...sAnsSnap.docs.map(d=>({__backendId: d.id, ...d.data()}))
+      ];
+
       processCloudData({
-        questions: [...wqSnap.docs.map(d=>d.data()), ...sqSnap.docs.map(d=>d.data())],
-        answers: ansSnap.docs.map(d=>({__backendId: d.id, ...d.data()}))
+        questions: [...wqSnap.docs.map(d=>({id: d.id, ...d.data()})), ...sqSnap.docs.map(d=>({id: d.id, ...d.data()}))],
+        answers: allAnswers
       });
     } catch (err) { console.error('背景同步失敗', err); }
   }
@@ -1420,14 +1440,22 @@ document.getElementById('login-btn').addEventListener('click', async (e) => {
       localStorage.setItem('ielts_currentUser', currentUser); 
       showToast('登入成功！');
       
-      const [wqSnap, sqSnap, ansSnap] = await Promise.all([
-        db.collection('Writing_Q').get(), db.collection('Speaking_Q').get(),
-        db.collection('answers').where('username', '==', name).get()
-      ]);
-      processCloudData({
-        questions: [...wqSnap.docs.map(d=>d.data()), ...sqSnap.docs.map(d=>d.data())],
-        answers: ansSnap.docs.map(d=>d.data())
-      });
+const [wqSnap, sqSnap, wAnsSnap, sAnsSnap] = await Promise.all([
+  db.collection('Writing_Q').get(), 
+  db.collection('Speaking_Q').get(),
+  db.collection('Writing_Answers').where('username', '==', name).get(),
+  db.collection('Speaking_Answers').where('username', '==', name).get()
+]);
+
+const allAnswers = [
+  ...wAnsSnap.docs.map(d=>d.data()),
+  ...sAnsSnap.docs.map(d=>d.data())
+];
+
+processCloudData({
+  questions: [...wqSnap.docs.map(d=>d.data()), ...sqSnap.docs.map(d=>d.data())],
+  answers: allAnswers
+});
 
       document.getElementById('screen-login').classList.add('hidden');
       document.getElementById('main-app').classList.remove('hidden');
