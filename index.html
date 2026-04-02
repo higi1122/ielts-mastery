@@ -6,7 +6,8 @@
   <title>IELTS Go!</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -45,7 +46,9 @@
        <input id="username-input" type="text" placeholder="輸入你的名稱" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink placeholder-slate/50 text-base mb-3"> 
        <label for="password-input" class="block text-left text-sm font-medium text-slate mb-1.5">密碼</label> 
        <input id="password-input" type="password" placeholder="輸入密碼" class="w-full px-4 py-3 rounded-xl bg-cloud border border-sand text-ink placeholder-slate/50 text-base mb-6"> 
-       <button id="login-btn" class="w-full py-3 rounded-xl bg-accent text-white font-semibold text-base btn-press shadow-sm shadow-accent/20">登入</button>
+      <button id="login-btn" class="w-full py-3 rounded-xl bg-accent text-white font-semibold text-base btn-press shadow-sm shadow-accent/20">登入</button>
+       
+       <button id="register-btn" class="w-full mt-3 py-3 rounded-xl bg-cloud border-2 border-accent text-accent font-semibold text-base btn-press">註冊新帳戶</button>
      </div>
     </div>
    </div>
@@ -94,13 +97,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ============ SECURITY (Hashing) ============
-async function hashPassword(message) {
-  const msgBuffer = new TextEncoder().encode(message);                    
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);    
-  const hashArray = Array.from(new Uint8Array(hashBuffer));               
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); 
-}
 
 // ============ STATE ============
 let currentUser = ''; let allData = []; let currentScreen = 'home'; let screenHistory = [];
@@ -207,44 +203,63 @@ function processCloudData(cloudData) {
   renderCurrentScreen(); 
 }
 
-// ============ 初始化與自動登入 ============
-async function initApp() {
-  await window.dataSdk.init(dataHandler);
-  document.getElementById('login-title').textContent = 'IELTS Go!';
-  
-  const savedUser = localStorage.getItem('ielts_currentUser');
-  if (savedUser) {
-    currentUser = savedUser;
+// ============ 初始化與 Firebase Auth 狀態監聽 ============
+let isRegistering = false; // 🛡️ 新增：防止註冊與自動登入發生衝突嘅旗籤
+
+firebase.auth().onAuthStateChanged(async (user) => {
+  if (isRegistering) return; // 💡 如果系統正在註冊中，直接跳過呢度嘅自動登入檢查！
+
+  if (user) {
+    // 🛡️ 登入後第一件事：檢查審批狀態
+    const rawName = user.email.split('@')[0];
+    const isAdmin = (user.email === 'adming@ieltsgo.com');
+
+    if (!isAdmin) {
+      try {
+   const userDoc = await db.collection('users').doc(rawName).get();
+        if (!userDoc.exists || userDoc.data().status !== 'approved') {
+          // 🚫 未審批！強制登出並彈出提示
+          await firebase.auth().signOut();
+          alert('⏳ 你的帳戶正在等待管理員審批中，請稍後再試！');
+          return; // 中止後續載入
+        }
+      } catch (e) {
+        console.error('審批檢查失敗', e);
+        return;
+      }
+    }
+
+    // ✅ 通過審批 (或 Admin 本人)，正式載入 App
+    currentUser = rawName; 
+    await window.dataSdk.init(dataHandler);
+    
+    document.getElementById('login-title').textContent = 'IELTS Go!';
     document.getElementById('screen-login').classList.add('hidden');
     document.getElementById('main-app').classList.remove('hidden');
     document.getElementById('user-badge').textContent = currentUser;
-const isAdmin = (currentUser === 'adming');
+
     document.getElementById('admin-btn').classList.toggle('hidden', !isAdmin);
 
     navigate('home');
     
+    // 從 Firebase 獲取數據
     try {
-      // 🚀 同時讀取 Writing 同 Speaking 嘅答案 Collection
       const [wqSnap, sqSnap, wAnsSnap, sAnsSnap] = await Promise.all([
         db.collection('Writing_Q').get(), 
         db.collection('Speaking_Q').get(),
         db.collection('Writing_Answers').where('username', '==', currentUser).get(),
         db.collection('Speaking_Answers').where('username', '==', currentUser).get()
       ]);
-
-      const allAnswers = [
-        ...wAnsSnap.docs.map(d=>({__backendId: d.id, ...d.data()})),
-        ...sAnsSnap.docs.map(d=>({__backendId: d.id, ...d.data()}))
-      ];
-
-      processCloudData({
-        questions: [...wqSnap.docs.map(d=>({id: d.id, ...d.data()})), ...sqSnap.docs.map(d=>({id: d.id, ...d.data()}))],
-        answers: allAnswers
-      });
+      const allAnswers = [ ...wAnsSnap.docs.map(d=>({__backendId: d.id, ...d.data()})), ...sAnsSnap.docs.map(d=>({__backendId: d.id, ...d.data()})) ];
+      processCloudData({ questions: [...wqSnap.docs.map(d=>({id: d.id, ...d.data()})), ...sqSnap.docs.map(d=>({id: d.id, ...d.data()}))], answers: allAnswers });
     } catch (err) { console.error('背景同步失敗', err); }
+
+  } else {
+    // ❌ 用戶未登入
+    document.getElementById('main-app').classList.add('hidden');
+    document.getElementById('screen-login').classList.remove('hidden');
   }
-}
-initApp();
+});
 
 // ============ HELPERS ============
 function showToast(msg) {
@@ -1480,79 +1495,142 @@ async function syncFromGoogleSheet() {
   finally { btn.innerHTML = ori; btn.disabled = false; lucide.createIcons(); }
 }
 
+// ============ 審批 ============
+async function renderAdmin() {
+  if (currentUser !== 'adming') { navigate('home'); return; }
+  const c = document.getElementById('content');
+  const wCount = PARAPHRASE_BANK.length + GRAMMAR_BANK.length + VOCAB_BANK.length + SKELETON_BANK.length;
+  const sCount = SPEAKING_P1_BANK.length + SPEAKING_P2_BANK.length + SPEAKING_P3_BANK.length;
+  const totalAns = allData.length;
+
+  // 🛡️ 讀取 Pending 用戶名單
+  let pendingUsersHtml = '<p class="text-sm text-slate">無待批用戶</p>';
+  try {
+    const pendingSnap = await db.collection('users').where('status', '==', 'pending').get();
+    if (!pendingSnap.empty) {
+      pendingUsersHtml = pendingSnap.docs.map(doc => {
+        const u = doc.data();
+        return `
+          <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-sand/50 mb-2">
+            <span class="font-medium text-ink">${u.username}</span>
+            <button onclick="approveUser('${doc.id}')" class="px-3 py-1.5 bg-mint text-white text-xs font-bold rounded-lg btn-press">批准 (Approve)</button>
+          </div>
+        `;
+      }).join('');
+    }
+  } catch(e) { console.error("讀取用戶失敗", e); }
+
+  c.innerHTML = `
+    <div class="fade-in pt-4 pb-4 space-y-4">
+      <div class="grid grid-cols-3 gap-3 mb-2">
+        <div class="bg-cloud p-3 rounded-xl border border-sand/50 text-center"><div class="text-xs text-slate mb-1">Writing</div><div class="text-xl font-bold text-ink">${wCount}</div></div>
+        <div class="bg-cloud p-3 rounded-xl border border-sand/50 text-center"><div class="text-xs text-slate mb-1">Speaking</div><div class="text-xl font-bold text-ink">${sCount}</div></div>
+        <div class="bg-cloud p-3 rounded-xl border border-sand/50 text-center"><div class="text-xs text-slate mb-1">全站答題</div><div class="text-xl font-bold text-accent">${totalAns}</div></div>
+      </div>
+
+      <div class="bg-cloud p-5 rounded-2xl border border-sand/50 border-l-4 border-l-accent shadow-sm">
+        <h3 class="font-bold text-ink mb-3 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-accent"></i> 待批用戶 (Pending)</h3>
+        ${pendingUsersHtml}
+      </div>
+
+      <div class="bg-cloud p-5 rounded-2xl border border-sand/50 border-l-4 border-l-[#0F9D58] shadow-sm">
+        <h3 class="font-bold text-ink mb-2 flex items-center gap-2"><i data-lucide="refresh-cw" class="w-4 h-4 text-[#0F9D58]"></i> 題庫同步</h3>
+        <button onclick="syncFromGoogleSheet()" id="sync-btn" class="w-full py-3.5 rounded-xl bg-[#0F9D58] text-white font-bold text-sm btn-press mt-2">執行 Google Sheet 同步</button>
+      </div>
+      <div class="bg-cloud p-5 rounded-2xl border border-sand/50 border-l-4 border-l-blue-500 shadow-sm">
+        <h3 class="font-bold text-ink mb-2 flex items-center gap-2"><i data-lucide="download-cloud" class="w-4 h-4 text-blue-500"></i> 數據備份</h3>
+        <button onclick="exportData()" class="w-full py-3.5 rounded-xl bg-blue-50 text-blue-600 font-bold text-sm btn-press mt-2 border border-blue-200">匯出作答數據 (JSON)</button>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+// 審批按鈕的 Function
+async function approveUser(uid) {
+  try {
+    await db.collection('users').doc(uid).update({ status: 'approved' });
+    showToast('✅ 用戶已獲批准！');
+    renderAdmin(); // 重新整理畫面
+  } catch(e) {
+    alert("批准失敗");
+  }
+}
+
 // ============ LOGIN / NAVIGATION ============
 document.getElementById('login-btn').addEventListener('click', async (e) => {
   e.preventDefault();
-  const name = document.getElementById('username-input').value.trim();
+  const rawName = document.getElementById('username-input').value.trim(); 
   const pwd = document.getElementById('password-input').value.trim(); 
   
-  if (!name || !pwd) { alert('請輸入名稱及密碼'); return; }
+  if (!rawName || !pwd) { alert('請輸入用戶名稱及密碼'); return; }
   
   const btn = document.getElementById('login-btn'); 
   btn.textContent = '驗證中...'; btn.disabled = true;
 
   try {
-    // 🕵️‍♂️ 偵探點 1：檢查是否用 file:/// 開啟 (會導致密碼加密死機)
-    if (!window.crypto || !window.crypto.subtle) {
-        alert("🛑 錯誤：你正在用電腦 Double-click 開啟 HTML 檔 (file:///)，瀏覽器基於安全理由封鎖咗密碼功能！\n\n👉 解決辦法：請將檔案 Upload 返上你個 GitHub Pages，用 https:// 網址開啟！");
-        return;
-    }
+    // 💡 神奇魔法：如果 user 冇打 @，我哋自動幫佢加個假嘅 Email 後綴！
+    const email = rawName.includes('@') ? rawName : rawName + '@ieltsgo.com';
 
-    const hashedPassword = await hashPassword(pwd);
-    const userDoc = await db.collection('users').doc(name).get();
-    
-    // 🕵️‍♂️ 偵探點 2：檢查 Firebase 有無呢個用戶
-    if (!userDoc.exists) {
-        alert(`🛑 登入失敗：Firebase 入面搵唔到名為 "${name}" 嘅用戶！\n請去 Database 嘅 users collection 檢查下有無串錯字。`);
-        return;
-    }
-    
-    // 🕵️‍♂️ 偵探點 3：檢查密碼啱唔啱
-    if (userDoc.data().password !== hashedPassword) {
-        alert(`🛑 登入失敗：密碼錯誤！\nDatabase 要求嘅係加密後嘅字串。如果你想用 "123456" 登入，請確保 Database 入面嘅 password 欄位係填：\n8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92`);
-        return;
-    }
-
-    currentUser = name; 
-    localStorage.setItem('ielts_currentUser', currentUser); 
-    
-    // 🕵️‍♂️ 偵探點 4：嘗試讀取題目同答案
-    const [wqSnap, sqSnap, wAnsSnap, sAnsSnap] = await Promise.all([
-      db.collection('Writing_Q').get(), 
-      db.collection('Speaking_Q').get(),
-      db.collection('Writing_Answers').where('username', '==', name).get(),
-      db.collection('Speaking_Answers').where('username', '==', name).get()
-    ]);
-
-    const allAnswers = [
-      ...wAnsSnap.docs.map(d=>({__backendId: d.id, ...d.data()})),
-      ...sAnsSnap.docs.map(d=>({__backendId: d.id, ...d.data()}))
-    ];
-
-    processCloudData({
-      questions: [...wqSnap.docs.map(d=>({id: d.id, ...d.data()})), ...sqSnap.docs.map(d=>({id: d.id, ...d.data()}))],
-      answers: allAnswers
-    });
-
-    document.getElementById('screen-login').classList.add('hidden');
-    document.getElementById('main-app').classList.remove('hidden');
-    document.getElementById('user-badge').textContent = name;
-
-    const isAdmin = (name === 'adming');
-    document.getElementById('admin-btn').classList.toggle('hidden', !isAdmin);
-
-    document.getElementById('password-input').value = '';
+    // 🚀 呼叫 Firebase 官方登入 API
+    await firebase.auth().signInWithEmailAndPassword(email, pwd);
     showToast('登入成功！');
-    navigate('home');
-
+    document.getElementById('password-input').value = '';
+    
   } catch (err) { 
-    // 🕵️‍♂️ 偵探點 5：終極錯誤捕捉
-    alert(`🛑 系統出現錯誤：\n${err.message}\n\n👉 如果上面寫住 "Missing or insufficient permissions"，代表你 Firebase 嘅 Security Rules 仲未改好！`);
+    alert(`🛑 登入失敗：\n${err.message}`);
     console.error(err); 
   } finally { 
     btn.textContent = '登入'; btn.disabled = false; 
   }
 });
+
+// ============ 註冊邏輯 ============
+document.getElementById('register-btn').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const rawName = document.getElementById('username-input').value.trim(); 
+  const pwd = document.getElementById('password-input').value.trim(); 
+  
+  if (!rawName || !pwd) { alert('請輸入你想使用的用戶名稱及密碼！'); return; }
+  if (pwd.length < 6) { alert('密碼太短啦！最少需要 6 個字元。'); return; }
+  
+  const btn = document.getElementById('register-btn'); 
+  btn.textContent = '註冊中...'; btn.disabled = true;
+
+  try {
+    isRegistering = true; // 💡 開啟旗籤：通知系統我哋註冊緊，暫停自動登入
+    const email = rawName.includes('@') ? rawName : rawName + '@ieltsgo.com';
+
+    // 🚀 1. 呼叫 Firebase 官方註冊
+    const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, pwd);
+    
+    // 🚀 2. 寫入 Database (而家唔會被踢出，100% 寫得入)
+    await db.collection('users').doc(rawName).set({
+      username: rawName,
+      email: email,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    });
+
+    showToast('註冊成功！請等待管理員審批。');
+    document.getElementById('password-input').value = '';
+    
+    // 🚀 3. 確保資料寫入後，手動將呢個 Pending 用戶登出
+    await firebase.auth().signOut();
+    
+  } catch (err) { 
+    if (err.code === 'auth/email-already-in-use') {
+      alert('🛑 註冊失敗：這個用戶名稱已經被其他人註冊了，請換一個名字！');
+    } else {
+      alert(`🛑 註冊失敗：\n${err.message}`);
+    }
+    console.error(err); 
+  } finally { 
+    isRegistering = false; // 💡 關閉旗籤：恢復正常
+    btn.textContent = '註冊新帳戶'; btn.disabled = false; 
+  }
+});
+
 
 // 新增 Enter 鍵直接登入邏輯
 document.getElementById('username-input').addEventListener('keydown', (e) => { 
@@ -1563,13 +1641,14 @@ document.getElementById('password-input').addEventListener('keydown', (e) => {
 });
 
 document.getElementById('logout-btn').addEventListener('click', () => {
-  // 登出時清除自動登入狀態
-  localStorage.removeItem('ielts_currentUser');
-  currentUser = ''; currentScreen = 'home'; screenHistory = [];
-  if (timerInterval) clearInterval(timerInterval);
-  p2State = 'idle'; p2Item = null;
-  document.getElementById('main-app').classList.add('hidden'); document.getElementById('screen-login').classList.remove('hidden');
-  document.getElementById('username-input').value = '';
+  // 🚀 呼叫 Firebase 官方登出 API
+  firebase.auth().signOut().then(() => {
+    currentUser = ''; currentScreen = 'home'; screenHistory = [];
+    if (timerInterval) clearInterval(timerInterval);
+    p2State = 'idle'; p2Item = null;
+    document.getElementById('username-input').value = '';
+    showToast('已登出');
+  });
 });
 
 document.getElementById('back-btn').addEventListener('click', goBack);
